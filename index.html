@@ -1,8 +1,19 @@
-<!DOCTYPE html><html><body><script type="module">
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, MessageCircle, Share2, Search, Home, PlusSquare, Bell, User, X, Zap, BookOpen, Waves, Upload, ChevronUp, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useCallback } = React;
+      const { motion, AnimatePresence } = FramerMotion;
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const MOCK_VIDEOS = [
   {
@@ -747,4 +758,6 @@ export default function ProjectVeyra() {
     </>
   );
 }
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
 </script></body></html>
