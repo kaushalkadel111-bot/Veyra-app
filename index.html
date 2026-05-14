@@ -2,1292 +2,940 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Veyra</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!--
+    LOAD ORDER MATTERS — all UMD globals must be available before
+    Babel compiles and executes the JSX block.
 
-  <!-- React 18 -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    FIX 1: React 18 UMD — pinned exact versions (no @18 alias which unpkg
+            sometimes redirects unreliably)
+    FIX 2: Framer Motion — must use the /dist/framer-motion.umd.js build.
+            The plain framer-motion.js build does NOT expose window.FramerMotion.
+    FIX 3: Lucide — pinned to 0.460.0, "latest" on unpkg is often stale/broken.
+    FIX 4: Babel standalone loaded LAST so it transpiles JSX only after all
+            globals exist. The text/babel script below runs after DOMContentLoaded
+            which is guaranteed to be after all synchronous <script> tags.
+  -->
 
-  <!-- Babel -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- 1. React -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 
-  <!-- Framer Motion -->
-  <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.umd.js"></script>
+  <!-- 2. Framer Motion UMD (exposes window.FramerMotion) -->
+  <script src="https://unpkg.com/framer-motion@11.3.31/dist/framer-motion.umd.js" crossorigin></script>
 
-  <!-- Supabase JS -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- 3. Lucide (pinned) -->
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.js" crossorigin></script>
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            zinc: {
-              950: '#09090b',
-              900: '#18181b',
-              800: '#27272a',
-              700: '#3f3f46',
-              600: '#52525b',
-              500: '#71717a',
-              400: '#a1a1aa',
-              300: '#d4d4d8',
-            },
-            cyan: {
-              400: '#22d3ee',
-              500: '#06b6d4',
-              600: '#0891b2',
-            }
-          },
-          fontFamily: {
-            syne: ['Syne', 'sans-serif'],
-            dm: ['DM Sans', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
+  <!-- 4. Babel — comes last -->
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #root {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      background: #09090b;
-      font-family: 'DM Sans', sans-serif;
+    :root {
+      --bg:        #050508;
+      --bg2:       #0c0c12;
+      --bg3:       #13131c;
+      --surface:   #1a1a26;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.13);
+      --cyan:      #00e5ff;
+      --cyan-dim:  rgba(0,229,255,0.12);
+      --cyan-glow: rgba(0,229,255,0.28);
+      --pink:      #ff2d6d;
+      --pink-dim:  rgba(255,45,109,0.15);
+      --purple:    #7b61ff;
+      --text:      #f0f0f8;
+      --text2:     #8888aa;
+      --text3:     #50506a;
+      --fd:        'Bebas Neue', sans-serif;
+      --fb:        'DM Sans', sans-serif;
+      --fm:        'JetBrains Mono', monospace;
     }
-    ::-webkit-scrollbar { width: 0; background: transparent; }
+    html, body, #root {
+      width:100%; height:100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--fb);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    ::-webkit-scrollbar { display:none; }
+    input, button, textarea { font-family: var(--fb); outline:none; }
+    button { cursor:pointer; }
+
+    /* ── Loading splash (shown while CDNs boot) ── */
+    #splash {
+      position:fixed; inset:0; z-index:9999;
+      background:var(--bg);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:20px;
+    }
+    #splash-logo {
+      font-family:'Bebas Neue',sans-serif;
+      font-size:52px; letter-spacing:6px;
+      background:linear-gradient(135deg,#00e5ff,#7b61ff);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    #splash-ring {
+      width:32px; height:32px; border-radius:50%;
+      border:3px solid rgba(0,229,255,0.2);
+      border-top-color:#00e5ff;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #splash-err { color:#ff5f5f; font-size:13px; text-align:center; padding:0 24px; display:none; }
+
+    /* ── Glassmorphism ── */
     .glass {
-      background: rgba(24,24,27,0.72);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,0.07);
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+      border:1px solid var(--border2);
     }
     .glass-dark {
-      background: rgba(9,9,11,0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255,255,255,0.06);
+      background:rgba(5,5,8,0.88);
+      backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px);
+      border:1px solid var(--border);
     }
-    .glow-cyan {
-      box-shadow: 0 0 24px rgba(6,182,212,0.35), 0 0 2px rgba(6,182,212,0.6);
+
+    /* ── Noise + scanlines ── */
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity:0.5;
     }
-    .glow-cyan-text {
-      text-shadow: 0 0 18px rgba(6,182,212,0.6);
+    body::after {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);
     }
-    .veyra-gradient {
-      background: linear-gradient(135deg, #06b6d4 0%, #0e7490 50%, #164e63 100%);
+
+    .app-shell { position:relative; z-index:1; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+    /* ── Feed ── */
+    .feed-scroll { overflow-y:scroll; scroll-snap-type:y mandatory; height:100%; }
+    .feed-item { scroll-snap-align:start; scroll-snap-stop:always; }
+
+    /* ── Nav ── */
+    .bottom-nav {
+      display:flex; justify-content:space-around; align-items:center;
+      padding:10px 0 max(10px,env(safe-area-inset-bottom));
+      border-top:1px solid var(--border); flex-shrink:0;
     }
-    .feed-gradient {
-      background: linear-gradient(to top, rgba(9,9,11,0.98) 0%, rgba(9,9,11,0.6) 50%, transparent 100%);
+    .nav-btn {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      background:none; border:none; color:var(--text3);
+      font-size:10px; font-weight:500; letter-spacing:0.5px; padding:6px 14px;
+      transition:color 0.2s;
     }
-    .noise-overlay {
-      position: absolute; inset: 0; pointer-events: none; z-index: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      opacity: 0.5;
+    .nav-btn.active { color:var(--cyan); }
+    .nav-btn-create {
+      width:52px; height:52px; border-radius:16px; border:none;
+      background:linear-gradient(135deg,var(--cyan),var(--purple));
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 0 22px var(--cyan-glow);
     }
-    .tab-active-indicator {
-      position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 4px; height: 4px; border-radius: 9999px; background: #06b6d4;
+    .nav-btn-create:active { transform:scale(0.93); }
+
+    /* ── Auth ── */
+    .input-field {
+      width:100%; padding:14px 16px;
+      background:var(--bg3); border:1px solid var(--border2);
+      border-radius:10px; color:var(--text); font-size:15px;
+      transition:border-color 0.2s, box-shadow 0.2s;
     }
-    .record-pulse {
-      animation: pulse-ring 1.4s ease-out infinite;
+    .input-field:focus { border-color:var(--cyan); box-shadow:0 0 0 3px var(--cyan-dim); }
+    .btn-primary {
+      width:100%; padding:15px;
+      background:linear-gradient(135deg,var(--cyan),var(--purple));
+      border:none; border-radius:12px; color:#050508;
+      font-size:15px; font-weight:700; letter-spacing:0.5px;
+      transition:opacity 0.2s,transform 0.15s;
     }
-    @keyframes pulse-ring {
-      0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); }
-      70% { box-shadow: 0 0 0 16px rgba(239,68,68,0); }
-      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    .btn-primary:active { transform:scale(0.98); opacity:0.9; }
+    .btn-ghost { background:none; border:none; color:var(--text2); font-size:14px; transition:color 0.2s; }
+    .btn-ghost:hover { color:var(--cyan); }
+
+    /* ── Cards ── */
+    .video-card { position:relative; width:100%; overflow:hidden; }
+    .video-overlay {
+      position:absolute; inset:0;
+      background:linear-gradient(to top,rgba(5,5,8,0.92) 0%,rgba(5,5,8,0.15) 40%,transparent 70%);
+      pointer-events:none;
     }
-    .slide-up { animation: slideUp 0.38s cubic-bezier(0.16,1,0.3,1) forwards; }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(32px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in { animation: fadeIn 0.28s ease forwards; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .content-scroll { overflow-y: auto; height: 100%; }
-    .snap-feed { scroll-snap-type: y mandatory; overflow-y: scroll; height: 100%; }
-    .snap-item { scroll-snap-align: start; }
-    .tribe-pill {
-      white-space: nowrap;
-      padding: 6px 16px;
-      border-radius: 9999px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: 'DM Sans', sans-serif;
-      letter-spacing: 0.01em;
-    }
-    .tribe-pill.active {
-      background: #06b6d4;
-      color: #09090b;
-    }
-    .tribe-pill.inactive {
-      background: rgba(39,39,42,0.8);
-      color: #a1a1aa;
-      border: 1px solid rgba(255,255,255,0.07);
-    }
-    .action-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      cursor: pointer; user-select: none;
-    }
-    .action-btn-icon {
-      width: 48px; height: 48px; border-radius: 50%;
-      background: rgba(24,24,27,0.72);
-      backdrop-filter: blur(12px);
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid rgba(255,255,255,0.1);
-      transition: all 0.18s;
-    }
-    .action-btn-icon:active { transform: scale(0.92); }
-    .bottom-nav-item {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      cursor: pointer; flex: 1; padding: 12px 0;
-      position: relative; transition: opacity 0.18s;
-    }
-    input, textarea {
-      background: rgba(39,39,42,0.6);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #f4f4f5;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      width: 100%;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input:focus, textarea:focus { border-color: rgba(6,182,212,0.5); }
-    .shimmer {
-      background: linear-gradient(90deg, rgba(39,39,42,0.4) 25%, rgba(63,63,70,0.4) 50%, rgba(39,39,42,0.4) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .video-actions { position:absolute; right:12px; bottom:80px; display:flex; flex-direction:column; gap:20px; align-items:center; }
+    .action-btn { display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; color:#fff; font-size:12px; font-weight:500; }
+    .action-icon { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+
+    /* ── Tabs ── */
+    .tab { flex:1; padding:13px 8px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text3); font-size:13px; font-weight:600; letter-spacing:0.3px; transition:color 0.2s,border-color 0.2s; }
+    .tab.active { color:var(--cyan); border-bottom-color:var(--cyan); }
+
+    /* ── Profile ── */
+    .stat-box { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:16px 8px; border-right:1px solid var(--border); }
+    .stat-box:last-child { border-right:none; }
+
+    /* ── Gaming ── */
+    .game-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px; }
+    .game-card { border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/10; cursor:pointer; }
+
+    /* ── Live ── */
+    .live-badge { background:var(--pink); color:#fff; font-size:10px; font-weight:700; letter-spacing:1px; padding:3px 8px; border-radius:4px; }
+
+    /* ── Camera ── */
+    .camera-screen { position:fixed; inset:0; z-index:200; background:#000; display:flex; flex-direction:column; }
+    .dur-pill { padding:8px 16px; border-radius:50px; border:none; background:rgba(255,255,255,0.1); color:#fff; font-size:13px; font-weight:600; transition:background 0.2s; flex-shrink:0; }
+    .dur-pill.active { background:var(--cyan); color:#050508; }
+    .rec-outer { width:80px; height:80px; border-radius:50%; border:4px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:border-color 0.3s; }
+    .rec-inner { width:60px; height:60px; border-radius:50%; background:#fff; transition:border-radius 0.3s,transform 0.3s,background 0.3s; }
+    .rec-inner.on { border-radius:10px; transform:scale(0.6); background:var(--pink); }
   </style>
 </head>
 <body>
+
+  <!-- Splash shown while JS/CDN loads -->
+  <div id="splash">
+    <div id="splash-logo">VEYRA</div>
+    <div id="splash-ring"></div>
+    <div id="splash-err"></div>
+  </div>
+
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useRef, useEffect, useCallback, useMemo } = React;
+    // ── Destructure globals (all loaded synchronously above Babel) ────────────
+    const { useState, useEffect, useRef, useCallback } = React;
+    // FramerMotion is the correct global name for the UMD build
     const { motion, AnimatePresence } = FramerMotion;
 
-    // ─── SUPABASE CONFIG ────────────────────────────────────────────────────────
-    // Replace these with your actual Supabase project credentials from Vercel env vars
-    const SUPABASE_URL = window.VEYRA_SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
-    const SUPABASE_ANON_KEY = window.VEYRA_SUPABASE_ANON_KEY || 'YOUR_ANON_KEY';
-    const { createClient } = supabase;
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // ─── MOCK DATA ───────────────────────────────────────────────────────────────
-    const MOCK_POSTS = [
-      { id: 1, user: '@kira.arch', avatar: 'KA', likes: '48.2K', comments: 312, shares: 1840, caption: 'Midnight render sessions hit different. The city never sleeps and neither do I. #architecture #3d', tribe: 'Tech', duration: '00:42', gradient: 'from-slate-900 via-cyan-950 to-zinc-950' },
-      { id: 2, user: '@devmarcus', avatar: 'DM', likes: '91.7K', comments: 874, shares: 4200, caption: 'Shipped this feature after 3 weeks of debugging. The dopamine hit is unreal. Open source soon. #dev #coding', tribe: 'Tech', duration: '00:18', gradient: 'from-zinc-950 via-indigo-950 to-zinc-900' },
-      { id: 3, user: '@nova.stream', avatar: 'NS', likes: '203K', comments: 2100, shares: 9800, caption: 'Championship qualifier in 4 hours. The prep is complete. Let\'s run it. #gaming #esports', tribe: 'Gaming', duration: '01:05', gradient: 'from-zinc-950 via-violet-950 to-zinc-950' },
-      { id: 4, user: '@atlas.fit', avatar: 'AF', likes: '67.4K', comments: 540, shares: 2900, caption: '5am. No excuses. Recovery week is over. Back to pulling heavy iron. #fitness #strength', tribe: 'Fitness', duration: '00:31', gradient: 'from-zinc-950 via-emerald-950 to-zinc-900' },
-      { id: 5, user: '@lyra.design', avatar: 'LD', likes: '29.8K', comments: 198, shares: 830, caption: 'Obsessing over micro-interactions this week. Every pixel has intent. #ux #design', tribe: 'Design', duration: '00:22', gradient: 'from-zinc-900 via-rose-950 to-zinc-950' },
-    ];
-
-    const TRIBES = ['For You', 'Gaming', 'Tech', 'Fitness', 'Design', 'Finance', 'Music', 'Sports'];
-
-    const GAMING_STREAMS = [
-      { id: 1, streamer: 'NightOwl_X', game: 'Valorant', viewers: '14.2K', badge: 'LIVE', gradient: 'from-violet-900 to-zinc-900', initials: 'NO' },
-      { id: 2, streamer: 'ProFrame99', game: 'Warzone 3', viewers: '8.7K', badge: 'LIVE', gradient: 'from-orange-900 to-zinc-900', initials: 'PF' },
-      { id: 3, streamer: 'CodeRacer', game: 'Elden Ring', viewers: '3.1K', badge: 'LIVE', gradient: 'from-cyan-900 to-zinc-900', initials: 'CR' },
-      { id: 4, streamer: 'StormByte', game: 'League of Legends', viewers: '22.6K', badge: 'LIVE', gradient: 'from-indigo-900 to-zinc-900', initials: 'SB' },
-      { id: 5, streamer: 'LunaPlay', game: 'Apex Legends', viewers: '5.4K', badge: 'LIVE', gradient: 'from-pink-900 to-zinc-900', initials: 'LP' },
-      { id: 6, streamer: 'GridIron_G', game: 'FC 25', viewers: '1.9K', badge: 'LIVE', gradient: 'from-green-900 to-zinc-900', initials: 'GG' },
-    ];
-
-    const FOLLOWING_POSTS = MOCK_POSTS.slice(1, 4);
-
-    // ─── UTILS ───────────────────────────────────────────────────────────────────
-    function formatNum(n) {
-      if (typeof n === 'string') return n;
-      if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-      if (n >= 1000) return (n/1000).toFixed(1) + 'K';
-      return n;
-    }
-
-    // ─── ICON HELPER ─────────────────────────────────────────────────────────────
-    function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, className = '' }) {
+    // ── Tiny SVG icon renderer using Lucide UMD ───────────────────────────────
+    function Icon({ name, size=20, color="currentColor", sw=1.8 }) {
       const ref = useRef(null);
       useEffect(() => {
-        if (ref.current && window.lucide) {
-          ref.current.innerHTML = '';
-          const iconFn = window.lucide[name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())];
-          if (iconFn) {
-            const svg = lucide.createElement(lucide[name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())]);
-            if (svg) { ref.current.appendChild(svg); }
-          }
-        }
-      }, [name, size, color]);
-
-      // Inline SVG approach for reliability
-      const icons = {
-        Home: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-        Search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
-        PlusCircle: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>,
-        Gamepad2: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>,
-        User: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-        Heart: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
-        HeartFill: <svg width={size} height={size} viewBox="0 0 24 24" fill="#06b6d4" stroke="#06b6d4" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
-        MessageCircle: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-        Share2: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
-        Bookmark: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>,
-        Camera: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
-        Video: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/></svg>,
-        Mic: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>,
-        X: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-        Check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-        Eye: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
-        EyeOff: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>,
-        Settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-        Grid: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-        Film: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>,
-        Link: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
-        Play: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-        RotateCcw: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-        ArrowLeft: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
-        Zap: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-        Bell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-        TrendingUp: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-        FlipHorizontal: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>,
-        Volume2: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>,
-        ChevronRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
-        LogOut: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-        Send: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
-      };
-      return icons[name] || <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth}><circle cx="12" cy="12" r="10"/></svg>;
-    }
-
-    // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
-    function AuthScreen({ onAuth }) {
-      const [mode, setMode] = useState('login'); // login | signup
-      const [email, setEmail] = useState('');
-      const [password, setPassword] = useState('');
-      const [username, setUsername] = useState('');
-      const [showPw, setShowPw] = useState(false);
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState('');
-      const [success, setSuccess] = useState('');
-
-      async function handleSubmit() {
-        setError(''); setSuccess(''); setLoading(true);
-        try {
-          if (mode === 'signup') {
-            const { data, error: err } = await sb.auth.signUp({ email, password, options: { data: { username } } });
-            if (err) throw err;
-            setSuccess('Account created! Check your email to confirm.');
-            setTimeout(() => onAuth({ email, username: username || email.split('@')[0] }), 1200);
-          } else {
-            const { data, error: err } = await sb.auth.signInWithPassword({ email, password });
-            if (err) throw err;
-            onAuth({ email, username: data.user?.user_metadata?.username || email.split('@')[0] });
-          }
-        } catch (e) {
-          // Demo fallback: allow login even if Supabase isn't configured
-          if (email && password.length >= 6) {
-            setSuccess(mode === 'signup' ? 'Account created!' : 'Welcome back!');
-            setTimeout(() => onAuth({ email, username: username || email.split('@')[0] }), 900);
-          } else {
-            setError(e.message || 'Something went wrong. Try demo@veyra.app / password123');
-          }
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      function handleDemo() {
-        setEmail('demo@veyra.app');
-        setPassword('password123');
-        setTimeout(() => onAuth({ email: 'demo@veyra.app', username: 'demo.user' }), 400);
-      }
-
-      return (
-        <div className="relative flex flex-col items-center justify-center h-full w-full bg-zinc-950 overflow-hidden">
-          <div className="noise-overlay" />
-          {/* BG glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500 opacity-5 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-500 opacity-5 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 w-full max-w-sm px-6 slide-up">
-            {/* Logo */}
-            <div className="flex flex-col items-center mb-10">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl veyra-gradient flex items-center justify-center glow-cyan">
-                  <Icon name="Zap" size={20} color="#09090b" />
-                </div>
-                <span className="text-3xl font-bold text-white" style={{fontFamily: 'Syne, sans-serif', letterSpacing: '-0.03em'}}>Veyra</span>
-              </div>
-              <p className="text-zinc-500 text-sm text-center" style={{fontFamily: 'DM Sans, sans-serif'}}>The professional social ecosystem</p>
-            </div>
-
-            {/* Mode Toggle */}
-            <div className="flex glass rounded-xl p-1 mb-6">
-              {['login','signup'].map(m => (
-                <button key={m} onClick={() => { setMode(m); setError(''); setSuccess(''); }}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
-                  style={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    background: mode === m ? '#06b6d4' : 'transparent',
-                    color: mode === m ? '#09090b' : '#71717a',
-                    fontWeight: mode === m ? '600' : '400',
-                  }}>
-                  {m === 'login' ? 'Sign In' : 'Sign Up'}
-                </button>
-              ))}
-            </div>
-
-            {/* Fields */}
-            <div className="flex flex-col gap-3 mb-4">
-              {mode === 'signup' && (
-                <input type="text" placeholder="Username" value={username}
-                  onChange={e => setUsername(e.target.value)} />
-              )}
-              <input type="email" placeholder="Email address" value={email}
-                onChange={e => setEmail(e.target.value)} />
-              <div className="relative">
-                <input type={showPw ? 'text' : 'password'} placeholder="Password" value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  style={{paddingRight: '48px'}} />
-                <button onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
-                  <Icon name={showPw ? 'EyeOff' : 'Eye'} size={18} color="currentColor" />
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="text-red-400 text-xs mb-3 text-center">{error}</p>}
-            {success && <p className="text-cyan-400 text-xs mb-3 text-center">{success}</p>}
-
-            <button onClick={handleSubmit} disabled={loading}
-              className="w-full py-3.5 rounded-xl font-semibold text-zinc-950 mb-3 transition-all active:scale-95"
-              style={{ background: loading ? 'rgba(6,182,212,0.5)' : '#06b6d4', fontFamily: 'Syne, sans-serif', fontSize: '15px' }}>
-              {loading ? 'Loading…' : mode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-
-            <button onClick={handleDemo}
-              className="w-full py-3 rounded-xl text-zinc-400 text-sm border border-zinc-800 hover:border-zinc-600 transition-all"
-              style={{fontFamily: 'DM Sans, sans-serif'}}>
-              Continue as Demo
-            </button>
-
-            <p className="text-zinc-700 text-xs text-center mt-6">
-              By continuing, you agree to Veyra's Terms & Privacy Policy
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    // ─── VIDEO POST CARD ──────────────────────────────────────────────────────────
-    function VideoCard({ post, onComment, onShare }) {
-      const [liked, setLiked] = useState(false);
-      const [saved, setSaved] = useState(false);
-      const [likeCount, setLikeCount] = useState(post.likes);
-
-      function handleLike() {
-        setLiked(l => !l);
-      }
-
-      return (
-        <div className={`snap-item relative flex flex-col justify-end overflow-hidden`}
-          style={{ height: '100%', width: '100%' }}>
-          {/* Mock video bg */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${post.gradient}`} />
-          <div className="noise-overlay" />
-
-          {/* Center play indicator */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-            <Icon name="Play" size={72} color="white" />
-          </div>
-
-          {/* Duration badge */}
-          <div className="absolute top-4 right-4 glass rounded-lg px-2.5 py-1 z-20">
-            <span className="text-white text-xs font-medium" style={{fontFamily:'DM Sans,sans-serif'}}>{post.duration}</span>
-          </div>
-
-          {/* Tribe badge */}
-          <div className="absolute top-4 left-4 z-20">
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{background:'rgba(6,182,212,0.15)',border:'1px solid rgba(6,182,212,0.3)',color:'#22d3ee',fontFamily:'DM Sans,sans-serif'}}>
-              {post.tribe}
-            </span>
-          </div>
-
-          {/* Feed gradient overlay */}
-          <div className="feed-gradient absolute inset-0 z-10 pointer-events-none" />
-
-          {/* Side actions */}
-          <div className="absolute right-3 bottom-28 z-30 flex flex-col gap-5 items-center">
-            {/* Avatar */}
-            <div className="relative">
-              <div className="w-11 h-11 rounded-full veyra-gradient flex items-center justify-center text-xs font-bold text-zinc-950"
-                style={{fontFamily:'Syne,sans-serif'}}>
-                {post.avatar}
-              </div>
-              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
-                <span className="text-zinc-950 font-bold" style={{fontSize:'11px',lineHeight:1}}>+</span>
-              </div>
-            </div>
-
-            {/* Like */}
-            <div className="action-btn" onClick={handleLike}>
-              <div className="action-btn-icon" style={liked ? {border:'1px solid rgba(6,182,212,0.4)',background:'rgba(6,182,212,0.12)'} : {}}>
-                <Icon name={liked ? 'HeartFill' : 'Heart'} size={22} color={liked ? '#06b6d4' : 'white'} />
-              </div>
-              <span className="text-white text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>{post.likes}</span>
-            </div>
-
-            {/* Comments */}
-            <div className="action-btn" onClick={() => onComment(post)}>
-              <div className="action-btn-icon">
-                <Icon name="MessageCircle" size={22} color="white" />
-              </div>
-              <span className="text-white text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>{post.comments}</span>
-            </div>
-
-            {/* Share */}
-            <div className="action-btn" onClick={() => onShare(post)}>
-              <div className="action-btn-icon">
-                <Icon name="Share2" size={22} color="white" />
-              </div>
-              <span className="text-white text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>{formatNum(post.shares)}</span>
-            </div>
-
-            {/* Bookmark */}
-            <div className="action-btn" onClick={() => setSaved(s => !s)}>
-              <div className="action-btn-icon" style={saved ? {border:'1px solid rgba(6,182,212,0.4)',background:'rgba(6,182,212,0.12)'} : {}}>
-                <Icon name="Bookmark" size={22} color={saved ? '#06b6d4' : 'white'} />
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom caption */}
-          <div className="relative z-20 px-4 pb-24 pr-20">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-white font-semibold text-sm" style={{fontFamily:'Syne,sans-serif'}}>{post.user}</span>
-              <span className="text-xs px-1.5 py-0.5 rounded text-cyan-400 font-medium" style={{background:'rgba(6,182,212,0.1)',fontFamily:'DM Sans,sans-serif'}}>Follow</span>
-            </div>
-            <p className="text-zinc-300 text-sm leading-relaxed" style={{fontFamily:'DM Sans,sans-serif'}}>{post.caption}</p>
-            <div className="flex items-center gap-1.5 mt-2">
-              <Icon name="Volume2" size={13} color="#06b6d4" />
-              <p className="text-zinc-400 text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>Original audio · {post.user}</p>
-            </div>
-          </div>
-
-          {/* Veyra watermark */}
-          <div className="absolute bottom-28 left-4 z-20 flex items-center gap-1 opacity-40">
-            <Icon name="Zap" size={10} color="#06b6d4" />
-            <span className="text-cyan-400 text-xs font-bold" style={{fontFamily:'Syne,sans-serif',fontSize:'10px'}}>VEYRA</span>
-          </div>
-        </div>
-      );
-    }
-
-    // ─── COMMENT SHEET ────────────────────────────────────────────────────────────
-    function CommentSheet({ post, onClose }) {
-      const [comments, setComments] = useState([
-        { id: 1, user: '@zeyn.io', text: 'This is next level. The attention to detail is insane 🔥', time: '2m', likes: 847, depth: 0 },
-        { id: 2, user: '@priya.build', text: 'Dropped into the community server. This deserves a collab.', time: '5m', likes: 312, depth: 0 },
-        { id: 3, user: '@codeframe', text: '↳ Agreed. The UX approach here is surgical.', time: '4m', likes: 128, depth: 1 },
-        { id: 4, user: '@atlas.mz', text: 'Have you shipped this publicly yet? I need this in my stack.', time: '9m', likes: 76, depth: 0 },
-        { id: 5, user: '@luna.dev', text: '↳ It\'s on GitHub. Search veyra-protocol', time: '7m', likes: 203, depth: 1 },
-      ]);
-      const [text, setText] = useState('');
-
-      function addComment() {
-        if (!text.trim()) return;
-        setComments(c => [{ id: Date.now(), user: '@you', text, time: 'now', likes: 0, depth: 0 }, ...c]);
-        setText('');
-      }
-
-      return (
-        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          className="absolute inset-x-0 bottom-0 z-50 glass-dark rounded-t-3xl overflow-hidden"
-          style={{ height: '70%' }}>
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div>
-              <span className="text-white font-semibold text-base" style={{fontFamily:'Syne,sans-serif'}}>Comments</span>
-              <span className="text-zinc-500 text-sm ml-2" style={{fontFamily:'DM Sans,sans-serif'}}>{comments.length}</span>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-              <Icon name="X" size={15} color="#a1a1aa" />
-            </button>
-          </div>
-          <div className="w-10 h-0.5 bg-zinc-700 rounded mx-auto mb-3" />
-
-          <div className="overflow-y-auto px-5" style={{height:'calc(100% - 140px)'}}>
-            {comments.map(c => (
-              <div key={c.id} className="flex gap-3 mb-5" style={{paddingLeft: c.depth ? '32px' : 0}}>
-                <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center text-xs font-bold text-cyan-400" style={{fontFamily:'Syne,sans-serif'}}>
-                  {c.user[1].toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-cyan-400 text-xs font-semibold" style={{fontFamily:'DM Sans,sans-serif'}}>{c.user}</span>
-                    <span className="text-zinc-600 text-xs">{c.time}</span>
-                  </div>
-                  <p className="text-zinc-200 text-sm leading-relaxed" style={{fontFamily:'DM Sans,sans-serif'}}>{c.text}</p>
-                  <div className="flex items-center gap-4 mt-1.5">
-                    <button className="text-zinc-600 text-xs flex items-center gap-1 hover:text-cyan-400 transition-colors">
-                      <Icon name="Heart" size={12} color="currentColor" /> {c.likes}
-                    </button>
-                    <button className="text-zinc-600 text-xs hover:text-cyan-400 transition-colors" style={{fontFamily:'DM Sans,sans-serif'}}>Reply</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="px-5 py-4 border-t border-zinc-800 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full veyra-gradient flex-shrink-0 flex items-center justify-center text-xs font-bold text-zinc-950">Y</div>
-            <div className="flex-1 flex items-center gap-2 bg-zinc-800 rounded-xl px-4 py-2.5">
-              <input type="text" placeholder="Add a comment…" value={text} onChange={e => setText(e.target.value)}
-                className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none p-0"
-                style={{fontFamily:'DM Sans,sans-serif'}} onKeyDown={e => e.key === 'Enter' && addComment()} />
-              <button onClick={addComment}><Icon name="Send" size={16} color="#06b6d4" /></button>
-            </div>
-          </div>
-        </motion.div>
-      );
-    }
-
-    // ─── SHARE SHEET ──────────────────────────────────────────────────────────────
-    function ShareSheet({ post, onClose }) {
-      const [copied, setCopied] = useState(false);
-      const link = `https://veyra.app/v/${post.id}-${post.user.replace('@','').replace('.','_')}`;
-
-      function handleCopy() {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-
-      const platforms = [
-        { name: 'Messages', color: '#22c55e', icon: 'MessageCircle' },
-        { name: 'Mail', color: '#3b82f6', icon: 'Send' },
-        { name: 'Link', color: '#06b6d4', icon: 'Link' },
-        { name: 'Embed', color: '#8b5cf6', icon: 'Film' },
-      ];
-
-      return (
-        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          className="absolute inset-x-0 bottom-0 z-50 glass-dark rounded-t-3xl overflow-hidden px-5 pt-5 pb-8"
-          style={{ minHeight: '320px' }}>
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-white font-semibold" style={{fontFamily:'Syne,sans-serif'}}>Share via</span>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-              <Icon name="X" size={15} color="#a1a1aa" />
-            </button>
-          </div>
-
-          {/* Watermark preview */}
-          <div className={`w-full h-28 rounded-2xl bg-gradient-to-br ${post.gradient} relative overflow-hidden mb-5 flex items-end p-3`}>
-            <div className="absolute inset-0 feed-gradient opacity-60" />
-            <div className="relative z-10">
-              <p className="text-white text-xs font-semibold" style={{fontFamily:'Syne,sans-serif'}}>{post.user}</p>
-              <p className="text-zinc-300 text-xs mt-0.5 line-clamp-1">{post.caption}</p>
-            </div>
-            <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
-              <Icon name="Zap" size={11} color="#06b6d4" />
-              <span className="text-cyan-400 font-bold" style={{fontFamily:'Syne,sans-serif',fontSize:'11px'}}>VEYRA</span>
-            </div>
-          </div>
-
-          <div className="flex gap-4 mb-5">
-            {platforms.map(p => (
-              <div key={p.name} className="flex flex-col items-center gap-2 cursor-pointer" onClick={handleCopy}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{background: p.color + '22', border: `1px solid ${p.color}33`}}>
-                  <Icon name={p.icon} size={22} color={p.color} />
-                </div>
-                <span className="text-zinc-400 text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>{p.name}</span>
-              </div>
-            ))}
-          </div>
-
-          <button onClick={handleCopy}
-            className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all"
-            style={{background: copied ? 'rgba(6,182,212,0.15)' : 'rgba(39,39,42,0.8)', border: `1px solid ${copied ? 'rgba(6,182,212,0.3)' : 'rgba(255,255,255,0.07)'}`}}>
-            <Icon name={copied ? 'Check' : 'Link'} size={16} color={copied ? '#06b6d4' : '#a1a1aa'} />
-            <span className={`text-sm font-medium ${copied ? 'text-cyan-400' : 'text-zinc-400'}`} style={{fontFamily:'DM Sans,sans-serif'}}>
-              {copied ? 'Link Copied!' : link}
-            </span>
-          </button>
-        </motion.div>
-      );
-    }
-
-    // ─── FEED TAB ─────────────────────────────────────────────────────────────────
-    function FeedTab() {
-      const [feedMode, setFeedMode] = useState('foryou');
-      const [activeTribe, setActiveTribe] = useState('For You');
-      const [commentPost, setCommentPost] = useState(null);
-      const [sharePost, setSharePost] = useState(null);
-
-      const posts = feedMode === 'foryou' ? MOCK_POSTS : FOLLOWING_POSTS;
-
-      return (
-        <div className="relative h-full w-full overflow-hidden">
-          {/* Top bar */}
-          <div className="absolute top-0 left-0 right-0 z-30 pt-safe">
-            {/* Feed toggle */}
-            <div className="flex items-center justify-center gap-6 pt-12 pb-2">
-              {[['foryou','For You'],['following','Following']].map(([key, label]) => (
-                <button key={key} onClick={() => setFeedMode(key)}
-                  className="relative text-sm font-semibold transition-all pb-1"
-                  style={{
-                    fontFamily:'Syne,sans-serif',
-                    color: feedMode === key ? 'white' : 'rgba(255,255,255,0.4)',
-                    fontSize: '15px'
-                  }}>
-                  {label}
-                  {feedMode === key && <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400" />}
-                </button>
-              ))}
-            </div>
-
-            {/* Tribe pills */}
-            <div className="flex gap-2 px-4 py-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
-              {TRIBES.map(t => (
-                <button key={t} className={`tribe-pill ${activeTribe === t ? 'active' : 'inactive'}`}
-                  onClick={() => setActiveTribe(t)}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Snap feed */}
-          <div className="snap-feed w-full h-full">
-            {posts.map(post => (
-              <div key={post.id} className="snap-item w-full" style={{height:'100%'}}>
-                <VideoCard post={post} onComment={setCommentPost} onShare={setSharePost} />
-              </div>
-            ))}
-          </div>
-
-          {/* Comment overlay */}
-          <AnimatePresence>
-            {commentPost && (
-              <div className="absolute inset-0 z-40" onClick={() => setCommentPost(null)}>
-                <div className="absolute inset-0 bg-zinc-950 opacity-40" />
-                <div onClick={e => e.stopPropagation()} className="absolute inset-0">
-                  <CommentSheet post={commentPost} onClose={() => setCommentPost(null)} />
-                </div>
-              </div>
-            )}
-          </AnimatePresence>
-
-          {/* Share overlay */}
-          <AnimatePresence>
-            {sharePost && (
-              <div className="absolute inset-0 z-40" onClick={() => setSharePost(null)}>
-                <div className="absolute inset-0 bg-zinc-950 opacity-40" />
-                <div onClick={e => e.stopPropagation()} className="absolute inset-0">
-                  <ShareSheet post={sharePost} onClose={() => setSharePost(null)} />
-                </div>
-              </div>
-            )}
-          </AnimatePresence>
-        </div>
-      );
-    }
-
-    // ─── SEARCH TAB ───────────────────────────────────────────────────────────────
-    function SearchTab() {
-      const [query, setQuery] = useState('');
-      const categories = [
-        { label: 'Gaming', color: '#7c3aed', icon: 'Gamepad2' },
-        { label: 'Tech', color: '#0284c7', icon: 'Zap' },
-        { label: 'Fitness', color: '#16a34a', icon: 'TrendingUp' },
-        { label: 'Design', color: '#db2777', icon: 'Film' },
-        { label: 'Finance', color: '#d97706', icon: 'TrendingUp' },
-        { label: 'Music', color: '#9333ea', icon: 'Volume2' },
-      ];
-
-      return (
-        <div className="h-full flex flex-col bg-zinc-950 pt-14">
-          <div className="px-4 pt-4 pb-3">
-            <h2 className="text-white text-2xl font-bold mb-4" style={{fontFamily:'Syne,sans-serif'}}>Explore</h2>
-            <div className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-3 border border-zinc-800">
-              <Icon name="Search" size={18} color="#52525b" />
-              <input type="text" placeholder="Search creators, topics, tribes…"
-                value={query} onChange={e => setQuery(e.target.value)}
-                className="bg-transparent border-none text-zinc-200 text-sm placeholder-zinc-600 flex-1 focus:outline-none p-0"
-                style={{fontFamily:'DM Sans,sans-serif'}} />
-            </div>
-          </div>
-          <div className="content-scroll px-4 pb-24">
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3 mt-2" style={{fontFamily:'DM Sans,sans-serif',letterSpacing:'0.12em'}}>Browse by Tribe</p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {categories.map(c => (
-                <div key={c.label} className="h-20 rounded-2xl flex items-end p-3 cursor-pointer overflow-hidden relative"
-                  style={{background: `linear-gradient(135deg, ${c.color}22, ${c.color}11)`, border: `1px solid ${c.color}22`}}>
-                  <div className="absolute top-3 right-3 opacity-20">
-                    <Icon name={c.icon} size={32} color={c.color} />
-                  </div>
-                  <span className="text-white font-semibold text-sm z-10" style={{fontFamily:'Syne,sans-serif'}}>{c.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3" style={{fontFamily:'DM Sans,sans-serif',letterSpacing:'0.12em'}}>Trending Creators</p>
-            {MOCK_POSTS.map(p => (
-              <div key={p.id} className="flex items-center gap-3 py-3 border-b border-zinc-900">
-                <div className="w-11 h-11 rounded-full veyra-gradient flex items-center justify-center text-xs font-bold text-zinc-950" style={{fontFamily:'Syne,sans-serif'}}>{p.avatar}</div>
-                <div className="flex-1">
-                  <p className="text-white text-sm font-semibold" style={{fontFamily:'DM Sans,sans-serif'}}>{p.user}</p>
-                  <p className="text-zinc-500 text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>{p.likes} likes · {p.tribe}</p>
-                </div>
-                <button className="px-3 py-1.5 rounded-lg text-xs font-medium text-cyan-400 border border-zinc-700" style={{fontFamily:'DM Sans,sans-serif'}}>Follow</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // ─── CREATE TAB ───────────────────────────────────────────────────────────────
-    function CreateTab({ onClose }) {
-      const [mode, setMode] = useState('menu'); // menu | camera
-      const [recording, setRecording] = useState(false);
-      const [duration, setDuration] = useState('15s');
-      const [cameraError, setCameraError] = useState('');
-      const [elapsed, setElapsed] = useState(0);
-      const [uploading, setUploading] = useState(false);
-      const [uploadDone, setUploadDone] = useState(false);
-      const videoRef = useRef(null);
-      const streamRef = useRef(null);
-      const recorderRef = useRef(null);
-      const timerRef = useRef(null);
-      const chunksRef = useRef([]);
-
-      const durations = ['10s', '15s', '20s', '1m', '5m'];
-
-      const durationMs = { '10s': 10000, '15s': 15000, '20s': 20000, '1m': 60000, '5m': 300000 };
-      const durationSec = { '10s': 10, '15s': 15, '20s': 20, '1m': 60, '5m': 300 };
-
-      async function startCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-          streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play();
-          }
-          setMode('camera');
-          setCameraError('');
-        } catch(e) {
-          setCameraError('Camera access denied. Please allow camera permission.');
-        }
-      }
-
-      function stopCamera() {
-        if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-        if (timerRef.current) clearInterval(timerRef.current);
-        setRecording(false); setElapsed(0); setMode('menu');
-      }
-
-      function startRecording() {
-        if (!streamRef.current) return;
-        chunksRef.current = [];
-        const recorder = new MediaRecorder(streamRef.current);
-        recorder.ondataavailable = e => chunksRef.current.push(e.data);
-        recorder.start();
-        recorderRef.current = recorder;
-        setRecording(true); setElapsed(0);
-        timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
-        // Auto-stop at duration
-        setTimeout(() => stopRecording(), durationMs[duration]);
-      }
-
-      function stopRecording() {
-        if (recorderRef.current && recorderRef.current.state !== 'inactive') { recorderRef.current.stop(); }
-        if (timerRef.current) clearInterval(timerRef.current);
-        setRecording(false);
-      }
-
-      async function handleUpload() {
-        setUploading(true);
-        // Mock upload to Supabase
-        try {
-          await new Promise(r => setTimeout(r, 1800)); // Simulate upload delay
-          // Real implementation:
-          // const blob = new Blob(chunksRef.current, { type: 'video/mp4' });
-          // const { data, error } = await sb.storage.from('videos').upload(`${Date.now()}.mp4`, blob);
-          // await sb.from('posts').insert({ user_id: user.id, storage_path: data.path, ... });
-          setUploadDone(true);
-          setTimeout(() => { setUploadDone(false); stopCamera(); }, 1500);
-        } finally {
-          setUploading(false);
-        }
-      }
-
-      useEffect(() => () => stopCamera(), []);
-
-      const progress = durationSec[duration] > 0 ? Math.min(elapsed / durationSec[duration], 1) : 0;
-
-      if (mode === 'menu') {
-        return (
-          <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} className="h-full bg-zinc-950 flex flex-col pt-14">
-            <div className="flex items-center justify-between px-5 pt-4 mb-8">
-              <h2 className="text-white text-2xl font-bold" style={{fontFamily:'Syne,sans-serif'}}>Create</h2>
-              <button onClick={onClose} className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                <Icon name="X" size={15} color="#a1a1aa" />
-              </button>
-            </div>
-
-            <div className="px-5 flex flex-col gap-4 flex-1">
-              {/* Duration selector */}
-              <div className="glass rounded-2xl p-4">
-                <p className="text-zinc-400 text-xs mb-3 uppercase tracking-widest" style={{fontFamily:'DM Sans,sans-serif',letterSpacing:'0.1em'}}>Duration</p>
-                <div className="flex gap-2">
-                  {durations.map(d => (
-                    <button key={d} onClick={() => setDuration(d)}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all"
-                      style={{
-                        fontFamily:'DM Sans,sans-serif',
-                        background: duration === d ? '#06b6d4' : 'rgba(39,39,42,0.6)',
-                        color: duration === d ? '#09090b' : '#71717a',
-                        border: duration === d ? 'none' : '1px solid rgba(255,255,255,0.07)',
-                      }}>
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Create options */}
-              {[
-                { icon: 'Camera', label: 'Record Video', sub: `Up to ${duration}`, action: startCamera, accent: true },
-                { icon: 'Video', label: 'Upload Video', sub: 'From your library', action: () => {}, accent: false },
-                { icon: 'Mic', label: 'Voice Post', sub: 'Audio-only post', action: () => {}, accent: false },
-                { icon: 'Film', label: 'Remix', sub: 'Duet or stitch', action: () => {}, accent: false },
-              ].map(item => (
-                <button key={item.label} onClick={item.action}
-                  className="flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-98"
-                  style={{
-                    background: item.accent ? 'rgba(6,182,212,0.1)' : 'rgba(24,24,27,0.72)',
-                    border: `1px solid ${item.accent ? 'rgba(6,182,212,0.25)' : 'rgba(255,255,255,0.06)'}`,
-                    backdropFilter: 'blur(12px)',
-                  }}>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{background: item.accent ? 'rgba(6,182,212,0.2)' : 'rgba(39,39,42,0.8)'}}>
-                    <Icon name={item.icon} size={22} color={item.accent ? '#06b6d4' : '#71717a'} />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-white text-sm font-semibold" style={{fontFamily:'Syne,sans-serif'}}>{item.label}</p>
-                    <p className="text-zinc-500 text-xs mt-0.5" style={{fontFamily:'DM Sans,sans-serif'}}>{item.sub}</p>
-                  </div>
-                  <div className="ml-auto"><Icon name="ChevronRight" size={16} color="#52525b" /></div>
-                </button>
-              ))}
-
-              {cameraError && <p className="text-red-400 text-sm text-center" style={{fontFamily:'DM Sans,sans-serif'}}>{cameraError}</p>}
-            </div>
-          </motion.div>
-        );
-      }
-
-      // Camera view
-      return (
-        <motion.div initial={{opacity:0}} animate={{opacity:1}} className="relative h-full bg-black overflow-hidden">
-          <video ref={videoRef} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{transform:'scaleX(-1)'}} />
-
-          {/* Overlay UI */}
-          <div className="absolute inset-0 flex flex-col pointer-events-none">
-            {/* Top controls */}
-            <div className="flex items-center justify-between px-5 pt-14 pointer-events-auto">
-              <button onClick={stopCamera} className="w-10 h-10 rounded-full glass flex items-center justify-center">
-                <Icon name="X" size={18} color="white" />
-              </button>
-              <div className="flex items-center gap-2 glass rounded-full px-3 py-1.5">
-                {recording && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
-                <span className="text-white text-xs font-mono">{String(Math.floor(elapsed/60)).padStart(2,'0')}:{String(elapsed%60).padStart(2,'0')}</span>
-                <span className="text-zinc-500 text-xs">/ {duration}</span>
-              </div>
-              <button className="w-10 h-10 rounded-full glass flex items-center justify-center pointer-events-auto">
-                <Icon name="FlipHorizontal" size={18} color="white" />
-              </button>
-            </div>
-
-            {/* Veyra watermark */}
-            <div className="flex items-center gap-1 pl-5 pt-2">
-              <Icon name="Zap" size={12} color="#06b6d4" />
-              <span className="text-cyan-400 font-bold" style={{fontFamily:'Syne,sans-serif',fontSize:'12px'}}>VEYRA</span>
-            </div>
-
-            <div className="flex-1" />
-
-            {/* Progress bar */}
-            {recording && (
-              <div className="mx-5 mb-4 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                <motion.div className="h-full bg-cyan-400 rounded-full"
-                  animate={{width: `${progress * 100}%`}}
-                  transition={{duration:0.5,ease:'linear'}} />
-              </div>
-            )}
-
-            {/* Duration pills */}
-            <div className="flex gap-2 justify-center mb-6 pointer-events-auto">
-              {durations.map(d => (
-                <button key={d} onClick={() => !recording && setDuration(d)}
-                  className="px-3 py-1 rounded-full text-xs font-medium transition-all"
-                  style={{
-                    fontFamily:'DM Sans,sans-serif',
-                    background: duration === d ? 'rgba(6,182,212,0.3)' : 'rgba(24,24,27,0.5)',
-                    color: duration === d ? '#22d3ee' : 'rgba(255,255,255,0.5)',
-                    border: duration === d ? '1px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                  }}>
-                  {d}
-                </button>
-              ))}
-            </div>
-
-            {/* Bottom controls */}
-            <div className="flex items-center justify-around pb-12 pointer-events-auto px-10">
-              <button onClick={handleUpload} disabled={!elapsed || uploading}
-                className="flex flex-col items-center gap-1 opacity-60 disabled:opacity-30">
-                <div className="w-12 h-12 rounded-full glass flex items-center justify-center">
-                  {uploadDone ? <Icon name="Check" size={22} color="#06b6d4" /> : uploading ? <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" /> : <Icon name="ArrowLeft" size={22} color="white" />}
-                </div>
-                <span className="text-white text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>Upload</span>
-              </button>
-
-              {/* Record button */}
-              <button onClick={recording ? stopRecording : startRecording}
-                className={`relative w-20 h-20 rounded-full flex items-center justify-center ${recording ? 'record-pulse' : ''}`}
-                style={{border: '4px solid white'}}>
-                <div className="rounded-full transition-all"
-                  style={{
-                    width: recording ? '28px' : '56px',
-                    height: recording ? '28px' : '56px',
-                    background: recording ? 'white' : '#ef4444',
-                    borderRadius: recording ? '6px' : '9999px',
-                  }} />
-              </button>
-
-              <button className="flex flex-col items-center gap-1 opacity-60">
-                <div className="w-12 h-12 rounded-full glass flex items-center justify-center">
-                  <Icon name="Video" size={22} color="white" />
-                </div>
-                <span className="text-white text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>Effects</span>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      );
-    }
-
-    // ─── GAMING TAB ───────────────────────────────────────────────────────────────
-    function GamingTab() {
-      const [activeSection, setActiveSection] = useState('live');
-
-      return (
-        <div className="h-full flex flex-col bg-zinc-950 pt-14">
-          <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-            <div>
-              <h2 className="text-white text-2xl font-bold" style={{fontFamily:'Syne,sans-serif'}}>Gaming</h2>
-              <p className="text-zinc-500 text-xs mt-0.5" style={{fontFamily:'DM Sans,sans-serif'}}>Live streams & esports</p>
-            </div>
-            <div className="flex items-center gap-1.5 bg-red-500 rounded-lg px-2.5 py-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              <span className="text-white text-xs font-semibold" style={{fontFamily:'Syne,sans-serif'}}>LIVE</span>
-            </div>
-          </div>
-
-          {/* Section toggle */}
-          <div className="flex gap-2 px-5 mb-4">
-            {[['live','Live Streams'],['esports','Esports'],['clips','Top Clips']].map(([k,l]) => (
-              <button key={k} onClick={() => setActiveSection(k)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
-                style={{
-                  fontFamily:'DM Sans,sans-serif',
-                  background: activeSection === k ? '#06b6d4' : 'rgba(39,39,42,0.6)',
-                  color: activeSection === k ? '#09090b' : '#71717a',
-                }}>
-                {l}
-              </button>
-            ))}
-          </div>
-
-          <div className="content-scroll px-5 pb-24">
-            {/* Featured stream */}
-            <div className="w-full h-44 rounded-2xl overflow-hidden relative mb-4 cursor-pointer"
-              style={{background: 'linear-gradient(135deg, #4c1d95, #1e1b4b)'}}>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-white bg-opacity-10 flex items-center justify-center">
-                  <Icon name="Play" size={28} color="white" />
-                </div>
-              </div>
-              <div className="absolute top-3 left-3 flex items-center gap-2">
-                <div className="bg-red-500 rounded-md px-2 py-0.5 flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  <span className="text-white text-xs font-bold" style={{fontFamily:'Syne,sans-serif'}}>LIVE</span>
-                </div>
-                <span className="text-white text-xs bg-black bg-opacity-40 rounded px-1.5 py-0.5" style={{fontFamily:'DM Sans,sans-serif'}}>38.4K watching</span>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-4" style={{background:'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'}}>
-                <p className="text-white font-bold text-base" style={{fontFamily:'Syne,sans-serif'}}>ESL Pro League S22 Finals</p>
-                <p className="text-zinc-400 text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>Counter-Strike 2 · Sponsored</p>
-              </div>
-              <div className="absolute top-3 right-3 flex items-center gap-1 opacity-70">
-                <Icon name="Zap" size={11} color="#06b6d4" />
-                <span className="text-cyan-400" style={{fontFamily:'Syne,sans-serif',fontSize:'11px',fontWeight:'700'}}>VEYRA</span>
-              </div>
-            </div>
-
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3" style={{fontFamily:'DM Sans,sans-serif',letterSpacing:'0.12em'}}>Live Now</p>
-            <div className="grid grid-cols-2 gap-3">
-              {GAMING_STREAMS.map(s => (
-                <div key={s.id} className={`rounded-2xl overflow-hidden cursor-pointer bg-gradient-to-br ${s.gradient} relative`}
-                  style={{border:'1px solid rgba(255,255,255,0.06)'}}>
-                  <div className="aspect-video flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-black bg-opacity-30 flex items-center justify-center text-white font-bold text-sm" style={{fontFamily:'Syne,sans-serif'}}>{s.initials}</div>
-                  </div>
-                  <div className="absolute top-2 left-2">
-                    <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-md" style={{fontFamily:'Syne,sans-serif'}}>{s.badge}</span>
-                  </div>
-                  <div className="p-2">
-                    <p className="text-white text-xs font-semibold truncate" style={{fontFamily:'Syne,sans-serif'}}>{s.streamer}</p>
-                    <p className="text-zinc-400 text-xs truncate" style={{fontFamily:'DM Sans,sans-serif'}}>{s.game}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                      <span className="text-zinc-400 text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>{s.viewers}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ─── PROFILE TAB ─────────────────────────────────────────────────────────────
-    function ProfileTab({ user, onLogout }) {
-      const [profileTab, setProfileTab] = useState('posts');
-      const stats = { posts: 47, followers: '12.4K', following: 891, likes: '284K' };
-      const gridItems = Array.from({length: 12}, (_, i) => ({
-        id: i+1,
-        gradient: MOCK_POSTS[i % MOCK_POSTS.length].gradient,
-      }));
-
-      return (
-        <div className="h-full flex flex-col bg-zinc-950 pt-14">
-          <div className="content-scroll">
-            {/* Header */}
-            <div className="px-5 pt-4">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-2xl veyra-gradient flex items-center justify-center text-xl font-bold text-zinc-950 glow-cyan" style={{fontFamily:'Syne,sans-serif'}}>
-                    {(user.username || 'U')[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-white font-bold text-lg" style={{fontFamily:'Syne,sans-serif'}}>@{user.username}</h2>
-                    <p className="text-zinc-500 text-xs mt-0.5" style={{fontFamily:'DM Sans,sans-serif'}}>{user.email}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                      <span className="text-cyan-400 text-xs" style={{fontFamily:'DM Sans,sans-serif'}}>Pro Creator</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center">
-                    <Icon name="Settings" size={17} color="#a1a1aa" />
-                  </button>
-                  <button onClick={onLogout} className="w-9 h-9 rounded-xl bg-zinc-800 flex items-center justify-center">
-                    <Icon name="LogOut" size={17} color="#a1a1aa" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-4 gap-2 mb-5">
-                {[['posts', stats.posts], ['followers', stats.followers], ['following', stats.following], ['likes', stats.likes]].map(([k,v]) => (
-                  <div key={k} className="glass rounded-xl p-3 text-center">
-                    <p className="text-white font-bold text-base" style={{fontFamily:'Syne,sans-serif'}}>{v}</p>
-                    <p className="text-zinc-500 text-xs mt-0.5 capitalize" style={{fontFamily:'DM Sans,sans-serif'}}>{k}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Bio */}
-              <div className="glass rounded-2xl p-4 mb-5">
-                <p className="text-zinc-300 text-sm leading-relaxed" style={{fontFamily:'DM Sans,sans-serif'}}>
-                  Professional creator on Veyra. Building at the intersection of tech and creativity.
-                  <span className="text-cyan-400"> #design #code #content</span>
-                </p>
-              </div>
-
-              {/* Edit profile */}
-              <button className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium mb-5 hover:border-zinc-500 transition-all"
-                style={{fontFamily:'DM Sans,sans-serif'}}>
-                Edit Profile
-              </button>
-
-              {/* Content tabs */}
-              <div className="flex gap-1 mb-4">
-                {[['posts','Grid'],['liked','Liked'],['saved','Saved']].map(([k,l]) => (
-                  <button key={k} onClick={() => setProfileTab(k)}
-                    className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
-                    style={{
-                      fontFamily:'DM Sans,sans-serif',
-                      background: profileTab === k ? 'rgba(6,182,212,0.15)' : 'transparent',
-                      color: profileTab === k ? '#06b6d4' : '#52525b',
-                      border: profileTab === k ? '1px solid rgba(6,182,212,0.25)' : '1px solid transparent',
-                    }}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Grid */}
-            <div className="grid grid-cols-3 gap-0.5 px-0 pb-28">
-              {gridItems.map(item => (
-                <div key={item.id} className={`aspect-square bg-gradient-to-br ${item.gradient} relative overflow-hidden cursor-pointer`}>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                    <Icon name="Play" size={24} color="white" />
-                  </div>
-                  <div className="absolute bottom-1 left-1 flex items-center gap-0.5">
-                    <Icon name="Play" size={10} color="white" />
-                    <span className="text-white text-xs font-medium" style={{fontFamily:'DM Sans,sans-serif',fontSize:'10px'}}>{Math.floor(Math.random()*50+2)}K</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
-    function BottomNav({ active, onChange }) {
-      const tabs = [
-        { key: 'feed', icon: 'Home', label: 'Home' },
-        { key: 'search', icon: 'Search', label: 'Search' },
-        { key: 'create', icon: 'PlusCircle', label: '' },
-        { key: 'gaming', icon: 'Gamepad2', label: 'Gaming' },
-        { key: 'profile', icon: 'User', label: 'Me' },
-      ];
-
-      return (
-        <div className="absolute bottom-0 left-0 right-0 z-40 glass-dark border-t border-zinc-800 flex items-center"
-          style={{paddingBottom: 'env(safe-area-inset-bottom, 8px)'}}>
-          {tabs.map(tab => (
-            <button key={tab.key} className="bottom-nav-item" onClick={() => onChange(tab.key)}>
-              {tab.key === 'create' ? (
-                <div className="w-12 h-12 rounded-2xl veyra-gradient flex items-center justify-center glow-cyan -mt-2">
-                  <Icon name="PlusCircle" size={22} color="#09090b" />
-                </div>
-              ) : (
-                <>
-                  <div className="relative">
-                    <Icon name={tab.icon} size={24} color={active === tab.key ? '#06b6d4' : '#52525b'} strokeWidth={active === tab.key ? 2 : 1.8} />
-                    {active === tab.key && <div className="tab-active-indicator" />}
-                  </div>
-                  {tab.label && <span className="text-xs" style={{fontFamily:'DM Sans,sans-serif',color:active===tab.key?'#06b6d4':'#52525b',fontSize:'10px'}}>{tab.label}</span>}
-                </>
-              )}
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    // ─── MAIN APP ─────────────────────────────────────────────────────────────────
-    function App() {
-      const [authed, setAuthed] = useState(false);
-      const [user, setUser] = useState(null);
-      const [activeTab, setActiveTab] = useState('feed');
-      const [prevTab, setPrevTab] = useState('feed');
-
-      // Check existing Supabase session on load
-      useEffect(() => {
-        sb.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            setUser({ email: session.user.email, username: session.user.user_metadata?.username || session.user.email.split('@')[0] });
-            setAuthed(true);
-          }
+        if (!ref.current) return;
+        // Convert camelCase → PascalCase for lucide key lookup
+        const key = name.charAt(0).toUpperCase() + name.slice(1);
+        const iconDef = lucide[key];
+        if (!iconDef) return;
+        ref.current.innerHTML = "";
+        const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+        svg.setAttribute("width",size); svg.setAttribute("height",size);
+        svg.setAttribute("viewBox","0 0 24 24"); svg.setAttribute("fill","none");
+        svg.setAttribute("stroke",color); svg.setAttribute("stroke-width",sw);
+        svg.setAttribute("stroke-linecap","round"); svg.setAttribute("stroke-linejoin","round");
+        // iconDef[2] is the children array in lucide UMD format
+        const children = iconDef[2] || [];
+        children.forEach(([tag, attrs]) => {
+          const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+          Object.entries(attrs||{}).forEach(([k,v]) => el.setAttribute(k,v));
+          svg.appendChild(el);
         });
-      }, []);
+        ref.current.appendChild(svg);
+      }, [name, size, color, sw]);
+      return <span ref={ref} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:0,flexShrink:0}} />;
+    }
 
-      function handleAuth(u) {
-        setUser(u);
-        setAuthed(true);
-      }
+    // ── Spinner ───────────────────────────────────────────────────────────────
+    function Spinner({ size=24, color="var(--cyan)" }) {
+      return (
+        <motion.div animate={{rotate:360}} transition={{repeat:Infinity,duration:0.8,ease:"linear"}}
+          style={{width:size,height:size,borderRadius:"50%",border:`2px solid ${color}22`,borderTopColor:color}} />
+      );
+    }
 
-      async function handleLogout() {
-        await sb.auth.signOut();
-        setUser(null);
-        setAuthed(false);
-        setActiveTab('feed');
-      }
+    // ── Data ──────────────────────────────────────────────────────────────────
+    const GR = [
+      "linear-gradient(155deg,#0d1b2a,#1b2838,#0a1220)",
+      "linear-gradient(155deg,#1a0a2e,#2d1b5e,#0f0a1e)",
+      "linear-gradient(155deg,#0a1628,#0d2640,#060e18)",
+      "linear-gradient(155deg,#1e0a14,#3d1428,#100508)",
+      "linear-gradient(155deg,#071c1c,#0d3333,#030c0c)",
+      "linear-gradient(155deg,#1a1200,#3a2800,#0c0900)",
+    ];
+    const FEED = [
+      {id:1,user:"@solara_streams",title:"Ranked to Radiant in 48hrs — full grind VOD",views:"1.2M",grad:GR[0],dur:"18:42",cat:"Gaming"},
+      {id:2,user:"@void_drift",title:"Midnight Tokyo drive — lo-fi session",views:"890K",grad:GR[4],dur:"8:14",cat:"Chill"},
+      {id:3,user:"@nxcode",title:"I built a real-time whiteboard in 2 hours",views:"640K",grad:GR[1],dur:"2:07:33",cat:"Dev"},
+      {id:4,user:"@solara_streams",title:"Reacting to pro player VODs — learning arc",views:"430K",grad:GR[3],dur:"44:12",cat:"Gaming"},
+    ];
+    const GAMES = [
+      {id:1,title:"Apex Legends",viewers:"182K",grad:GR[0],streamer:"Solara"},
+      {id:2,title:"Valorant",viewers:"134K",grad:GR[1],streamer:"NxCode"},
+      {id:3,title:"Elden Ring",viewers:"98K",grad:GR[3],streamer:"VoidDrift"},
+      {id:4,title:"CS2",viewers:"76K",grad:GR[2],streamer:"Krypt0"},
+      {id:5,title:"League of Legends",viewers:"211K",grad:GR[5],streamer:"Lumina"},
+      {id:6,title:"Minecraft",viewers:"55K",grad:GR[4],streamer:"PixelKing"},
+    ];
+    const LIVES = [
+      {id:1,user:"@solara_streams",title:"RANKED GRIND — Road to Top 500",viewers:"14.2K",grad:GR[0],time:"3:12:44"},
+      {id:2,user:"@lumina",title:"midnight chill stream · no mic",viewers:"3.8K",grad:GR[4],time:"0:44:01"},
+      {id:3,user:"@krypt0.exe",title:"CS2 Pro Scrims — Behind the Scenes",viewers:"9.1K",grad:GR[2],time:"1:28:15"},
+    ];
 
-      function handleTabChange(tab) {
-        setPrevTab(activeTab);
-        setActiveTab(tab);
-      }
+    // ── Hatched pattern overlay (simulates video texture) ─────────────────────
+    function Hatch() {
+      return <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.012) 0,rgba(255,255,255,0.012) 1px,transparent 1px,transparent 18px)",backgroundSize:"18px 18px",pointerEvents:"none"}} />;
+    }
 
-      if (!authed) {
-        return <AuthScreen onAuth={handleAuth} />;
-      }
+    // ════════════════════════════════════════════════════════════════════════
+    // AUTH
+    // ════════════════════════════════════════════════════════════════════════
+    function AuthScreen({ onAuth }) {
+      const [mode,setMode]   = useState("login");
+      const [email,setEmail] = useState("");
+      const [pass,setPass]   = useState("");
+      const [user,setUser]   = useState("");
+      const [loading,setLoading] = useState(false);
+      const [err,setErr]     = useState("");
+
+      const submit = async () => {
+        setErr("");
+        if(!email||!pass){setErr("Please fill all fields."); return;}
+        if(mode==="signup"&&!user){setErr("Username required."); return;}
+        setLoading(true);
+        await new Promise(r=>setTimeout(r,900));
+        setLoading(false);
+        const u = user||email.split("@")[0];
+        onAuth({email, username:u, handle:"@"+u.toLowerCase().replace(/\s+/g,"_")});
+      };
 
       return (
-        <div className="relative h-full w-full overflow-hidden bg-zinc-950">
-          <AnimatePresence mode="wait">
-            {activeTab === 'feed' && (
-              <motion.div key="feed" className="absolute inset-0" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18}}>
-                <FeedTab />
-              </motion.div>
-            )}
-            {activeTab === 'search' && (
-              <motion.div key="search" className="absolute inset-0" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.22}}>
-                <SearchTab />
-              </motion.div>
-            )}
-            {activeTab === 'create' && (
-              <motion.div key="create" className="absolute inset-0" initial={{opacity:0,scale:0.97}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.97}} transition={{duration:0.22}}>
-                <CreateTab onClose={() => setActiveTab(prevTab)} />
-              </motion.div>
-            )}
-            {activeTab === 'gaming' && (
-              <motion.div key="gaming" className="absolute inset-0" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.22}}>
-                <GamingTab />
-              </motion.div>
-            )}
-            {activeTab === 'profile' && (
-              <motion.div key="profile" className="absolute inset-0" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:0.22}}>
-                <ProfileTab user={user} onLogout={handleLogout} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div style={{position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",padding:20,
+          background:"radial-gradient(ellipse at 30% 20%,rgba(0,229,255,0.07) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(123,97,255,0.07) 0%,transparent 50%),var(--bg)"}}>
+          <motion.div className="glass" initial={{opacity:0,y:24,scale:0.97}} animate={{opacity:1,y:0,scale:1}}
+            transition={{duration:0.45,ease:[0.22,1,0.36,1]}}
+            style={{width:"100%",maxWidth:420,borderRadius:24,padding:"40px 32px"}}>
 
-          <BottomNav active={activeTab} onChange={handleTabChange} />
+            <div style={{textAlign:"center",marginBottom:30}}>
+              <div style={{fontFamily:"var(--fd)",fontSize:48,letterSpacing:5,background:"linear-gradient(135deg,var(--cyan),var(--purple))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1}}>VEYRA</div>
+              <div style={{color:"var(--text3)",fontSize:11,letterSpacing:2.5,marginTop:8,textTransform:"uppercase"}}>Stream · Create · Connect</div>
+            </div>
+
+            <div style={{display:"flex",background:"var(--bg3)",borderRadius:10,padding:4,marginBottom:22}}>
+              {["login","signup"].map(m=>(
+                <button key={m} onClick={()=>{setMode(m);setErr("");}}
+                  style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",fontSize:13,fontWeight:600,letterSpacing:0.3,
+                    background:mode===m?"var(--surface)":"none",color:mode===m?"var(--text)":"var(--text3)",transition:"all 0.2s"}}>
+                  {m==="login"?"Sign In":"Create Account"}
+                </button>
+              ))}
+            </div>
+
+            <div style={{display:"flex",flexDirection:"column",gap:11,marginBottom:18}}>
+              {mode==="signup"&&<input className="input-field" placeholder="Username" value={user} onChange={e=>setUser(e.target.value)} />}
+              <input className="input-field" type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} />
+              <input className="input-field" type="password" placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} />
+            </div>
+
+            {err&&<p style={{color:"#ff5f5f",fontSize:13,marginBottom:12,textAlign:"center"}}>{err}</p>}
+
+            <button className="btn-primary" onClick={submit} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              {loading?<Spinner size={18} color="#050508"/>:(mode==="login"?"Sign In":"Create Account")}
+            </button>
+
+            <div style={{textAlign:"center",marginTop:18}}>
+              <button className="btn-ghost" onClick={()=>onAuth({email:"demo@veyra.app",username:"Demo User",handle:"@demo_user"})}>
+                Continue as Guest
+              </button>
+            </div>
+
+            <p style={{color:"var(--text3)",fontSize:11,textAlign:"center",marginTop:22,lineHeight:1.6}}>
+              By continuing you agree to Veyra's Terms of Service &amp; Privacy Policy
+            </p>
+          </motion.div>
         </div>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    // ════════════════════════════════════════════════════════════════════════
+    // HOME FEED
+    // ════════════════════════════════════════════════════════════════════════
+    function FeedCard({ item, height }) {
+      const [liked,setLiked]   = useState(false);
+      const [likes,setLikes]   = useState(()=>Math.floor(Math.random()*80+15)*1000);
+      const [saved,setSaved]   = useState(false);
+
+      return (
+        <div className="video-card feed-item" style={{height,background:item.grad}}>
+          <Hatch />
+          <div className="video-overlay" />
+
+          <div style={{position:"absolute",top:16,left:16,display:"flex",gap:8}}>
+            <span style={{background:"rgba(0,229,255,0.14)",border:"1px solid rgba(0,229,255,0.25)",color:"var(--cyan)",fontSize:10,fontWeight:700,letterSpacing:1.5,padding:"4px 10px",borderRadius:6}}>
+              {item.cat.toUpperCase()}
+            </span>
+            <span style={{background:"rgba(0,0,0,0.55)",color:"var(--text2)",fontSize:11,padding:"4px 10px",borderRadius:6,fontFamily:"var(--fm)"}}>
+              {item.dur}
+            </span>
+          </div>
+
+          <div className="video-actions">
+            <button className="action-btn" onClick={()=>{setLiked(!liked);setLikes(l=>liked?l-1:l+1);}}>
+              <div className="action-icon glass"><Icon name="Heart" size={20} color={liked?"var(--pink)":"#fff"} /></div>
+              <span style={{color:"#fff",fontSize:11}}>{(likes/1000).toFixed(1)}K</span>
+            </button>
+            <button className="action-btn">
+              <div className="action-icon glass"><Icon name="MessageCircle" size={20} color="#fff" /></div>
+              <span style={{color:"#fff",fontSize:11}}>{(Math.random()*8+1).toFixed(1)}K</span>
+            </button>
+            <button className="action-btn" onClick={()=>setSaved(!saved)}>
+              <div className="action-icon glass"><Icon name="Bookmark" size={20} color={saved?"var(--cyan)":"#fff"} /></div>
+              <span style={{color:"#fff",fontSize:11}}>Save</span>
+            </button>
+            <button className="action-btn">
+              <div className="action-icon glass"><Icon name="Share2" size={20} color="#fff" /></div>
+              <span style={{color:"#fff",fontSize:11}}>Share</span>
+            </button>
+          </div>
+
+          <div style={{position:"absolute",bottom:24,left:16,right:80}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,var(--cyan),var(--purple))",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:14,fontWeight:700,color:"#050508"}}>
+                {item.user[1].toUpperCase()}
+              </div>
+              <div>
+                <div style={{color:"#fff",fontWeight:600,fontSize:14}}>{item.user}</div>
+                <div style={{color:"var(--text2)",fontSize:12,display:"flex",alignItems:"center",gap:4}}>
+                  <Icon name="Eye" size={12} color="var(--text3)" /> {item.views} views
+                </div>
+              </div>
+              <button style={{marginLeft:"auto",padding:"6px 14px",borderRadius:20,border:"1px solid var(--border2)",background:"rgba(255,255,255,0.07)",color:"#fff",fontSize:12,fontWeight:600}}>
+                Follow
+              </button>
+            </div>
+            <p style={{color:"#fff",fontSize:14,fontWeight:500,lineHeight:1.45,textShadow:"0 1px 8px rgba(0,0,0,0.8)"}}>{item.title}</p>
+          </div>
+        </div>
+      );
+    }
+
+    function HomeView() {
+      const [tab,setTab] = useState("foryou");
+      const wrapRef = useRef(null);
+      const [h,setH] = useState(600);
+      useEffect(()=>{
+        const upd=()=>{ if(wrapRef.current) setH(wrapRef.current.offsetHeight); };
+        upd(); window.addEventListener("resize",upd);
+        return ()=>window.removeEventListener("resize",upd);
+      },[]);
+
+      return (
+        <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+          <div style={{padding:"14px 16px 0",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <div style={{fontFamily:"var(--fd)",fontSize:28,letterSpacing:3,background:"linear-gradient(135deg,var(--cyan),var(--purple))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>VEYRA</div>
+            <div style={{display:"flex",gap:14}}>
+              <button style={{background:"none",border:"none"}}><Icon name="Search" size={22} color="var(--text2)" /></button>
+              <button style={{background:"none",border:"none"}}><Icon name="Bell" size={22} color="var(--text2)" /></button>
+            </div>
+          </div>
+
+          <div style={{padding:"0 16px",flexShrink:0,display:"flex",gap:24,borderBottom:"1px solid var(--border)"}}>
+            {[{id:"following",l:"Following"},{id:"foryou",l:"For You"}].map(t=>(
+              <button key={t.id} className={`tab${tab===t.id?" active":""}`} style={{flex:"none",padding:"10px 0"}} onClick={()=>setTab(t.id)}>{t.l}</button>
+            ))}
+          </div>
+
+          <div className="feed-scroll" ref={wrapRef} style={{flex:1}}>
+            {FEED.map(item=><FeedCard key={item.id} item={item} height={h} />)}
+          </div>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // GAMING
+    // ════════════════════════════════════════════════════════════════════════
+    function GamingView() {
+      const [tab,setTab] = useState("browse");
+      return (
+        <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"16px 16px 6px",flexShrink:0}}>
+            <h1 style={{fontFamily:"var(--fd)",fontSize:30,letterSpacing:2,marginBottom:2}}>GAMING</h1>
+            <p style={{color:"var(--text3)",fontSize:13}}>Top streams · Tournaments · Highlights</p>
+          </div>
+
+          <div style={{flexShrink:0,display:"flex",borderBottom:"1px solid var(--border)"}}>
+            {["Browse","Live","Clips","Esports"].map(t=>(
+              <button key={t} className={`tab${tab===t.toLowerCase()?" active":""}`} onClick={()=>setTab(t.toLowerCase())} style={{flex:1,padding:"11px 4px",fontSize:12}}>{t}</button>
+            ))}
+          </div>
+
+          <div style={{flex:1,overflowY:"auto"}}>
+            {/* Featured */}
+            <div style={{margin:"12px 12px 0",borderRadius:16,overflow:"hidden",background:GR[0],aspectRatio:"16/7",position:"relative",cursor:"pointer"}}>
+              <Hatch />
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(5,5,8,0.85) 0%,transparent 60%)"}}/> 
+              <div style={{position:"absolute",top:10,left:10}}><span className="live-badge">● LIVE</span></div>
+              <div style={{position:"absolute",bottom:14,left:14,right:14}}>
+                <p style={{color:"var(--text2)",fontSize:11,marginBottom:3}}>@solara_streams</p>
+                <p style={{color:"#fff",fontWeight:600,fontSize:16,marginBottom:6}}>RANKED GRIND — Road to Top 500</p>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{color:"var(--cyan)",fontSize:12,fontFamily:"var(--fm)"}}>14.2K watching</span>
+                  <span style={{background:"rgba(0,229,255,0.12)",color:"var(--cyan)",fontSize:11,padding:"3px 10px",borderRadius:20,border:"1px solid rgba(0,229,255,0.2)"}}>Apex Legends</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{padding:"18px 16px 8px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"var(--text)",fontWeight:600,fontSize:15}}>Top Games</span>
+              <button className="btn-ghost" style={{fontSize:12}}>See all</button>
+            </div>
+
+            <div className="game-grid">
+              {GAMES.map(g=>(
+                <motion.div key={g.id} className="game-card" style={{background:g.grad}} whileTap={{scale:0.97}}>
+                  <Hatch />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(5,5,8,0.82) 0%,transparent 55%)"}}/>
+                  <div style={{position:"absolute",top:7,right:7,background:"rgba(0,0,0,0.65)",color:"var(--text2)",fontSize:10,fontFamily:"var(--fm)",padding:"3px 7px",borderRadius:4}}>{g.viewers}</div>
+                  <div style={{position:"absolute",bottom:8,left:8,right:8}}>
+                    <p style={{color:"#fff",fontWeight:700,fontSize:13,marginBottom:1}}>{g.title}</p>
+                    <p style={{color:"var(--text2)",fontSize:10}}>{g.streamer}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // LIVE
+    // ════════════════════════════════════════════════════════════════════════
+    function LiveView({ user }) {
+      const [goLive,setGoLive]   = useState(false);
+      const [title,setTitle]     = useState("");
+      const [casting,setCasting] = useState(false);
+      const [chat,setChat]       = useState([
+        {id:1,u:"phantom_x",  m:"lets gooo"},
+        {id:2,u:"luna.stream",m:"first time catching you live!"},
+        {id:3,u:"krypt0_exe", m:"quality looks insane"},
+        {id:4,u:"v0idwalker", m:"W stream W stream"},
+      ]);
+      const [ci,setCi] = useState("");
+      const chatRef = useRef(null);
+
+      const send=()=>{
+        if(!ci.trim())return;
+        setChat(c=>[...c,{id:Date.now(),u:user.handle.slice(1),m:ci}]);
+        setCi("");
+        setTimeout(()=>{if(chatRef.current)chatRef.current.scrollTop=9999;},50);
+      };
+
+      if(casting) return (
+        <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"12px 16px",background:"var(--bg2)",borderBottom:"1px solid var(--border)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                <span className="live-badge">● LIVE</span>
+                <span style={{color:"var(--text2)",fontSize:11,fontFamily:"var(--fm)"}}>00:04:21</span>
+              </div>
+              <p style={{color:"var(--text)",fontWeight:600,fontSize:14}}>{title}</p>
+            </div>
+            <div style={{display:"flex",gap:12,alignItems:"center"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{color:"var(--cyan)",fontFamily:"var(--fm)",fontSize:18,fontWeight:700}}>0</div>
+                <div style={{color:"var(--text3)",fontSize:9,letterSpacing:0.5}}>VIEWERS</div>
+              </div>
+              <button onClick={()=>setCasting(false)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid var(--pink)",background:"var(--pink-dim)",color:"var(--pink)",fontSize:12,fontWeight:700}}>End</button>
+            </div>
+          </div>
+
+          <div style={{background:GR[0],flex:"0 0 200px",position:"relative"}}>
+            <Hatch />
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <p style={{color:"rgba(255,255,255,0.15)",fontSize:12,letterSpacing:2}}>STREAM PREVIEW</p>
+            </div>
+            <div style={{position:"absolute",bottom:10,left:10,display:"flex",gap:8}}>
+              {["Mic","Camera"].map(b=>(
+                <button key={b} style={{background:"rgba(0,0,0,0.6)",border:"1px solid var(--border)",borderRadius:8,padding:"6px 12px",color:"#fff",fontSize:11}}>
+                  <Icon name={b==="Mic"?"Mic":"Camera"} size={12} color="#fff" /> {b}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+            <div style={{padding:"9px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+              <span style={{color:"var(--text2)",fontSize:11,fontWeight:700,letterSpacing:0.8}}>LIVE CHAT</span>
+            </div>
+            <div ref={chatRef} style={{flex:1,overflowY:"auto",padding:"8px 16px",display:"flex",flexDirection:"column",gap:8}}>
+              {chat.map(m=>(
+                <div key={m.id} style={{display:"flex",gap:8}}>
+                  <span style={{color:"var(--cyan)",fontWeight:700,fontSize:13,flexShrink:0}}>{m.u}</span>
+                  <span style={{color:"var(--text)",fontSize:13}}>{m.m}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"10px 12px",borderTop:"1px solid var(--border)",display:"flex",gap:8,flexShrink:0}}>
+              <input value={ci} onChange={e=>setCi(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Say something..."
+                style={{flex:1,background:"var(--bg3)",border:"1px solid var(--border2)",borderRadius:10,padding:"10px 14px",color:"var(--text)",fontSize:14}} />
+              <button onClick={send} style={{background:"var(--cyan)",border:"none",borderRadius:10,padding:"0 16px",color:"#050508",fontWeight:700,fontSize:13}}>Send</button>
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"16px 16px 6px",flexShrink:0}}>
+            <h1 style={{fontFamily:"var(--fd)",fontSize:30,letterSpacing:2,marginBottom:2}}>LIVE</h1>
+            <p style={{color:"var(--text3)",fontSize:13}}>Broadcast live or watch others</p>
+          </div>
+
+          <div style={{padding:"12px 16px",flexShrink:0}}>
+            <motion.button whileTap={{scale:0.97}} onClick={()=>setGoLive(true)}
+              style={{width:"100%",padding:"15px",borderRadius:14,border:"none",background:"linear-gradient(135deg,var(--pink),var(--purple))",color:"#fff",fontSize:15,fontWeight:700,letterSpacing:0.5,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+              <Icon name="Radio" size={20} color="#fff" /> Go Live Now
+            </motion.button>
+          </div>
+
+          <div style={{padding:"0 16px 8px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{color:"var(--text)",fontWeight:600,fontSize:15}}>Live Now</span>
+            <span style={{color:"var(--text3)",fontSize:12}}>{LIVES.length} streams</span>
+          </div>
+
+          <div style={{flex:1,overflowY:"auto",padding:"0 12px 12px"}}>
+            {LIVES.map(s=>(
+              <motion.div key={s.id} whileTap={{scale:0.98}} style={{marginBottom:12,borderRadius:14,overflow:"hidden",border:"1px solid var(--border)"}}>
+                <div style={{background:s.grad,aspectRatio:"16/7",position:"relative"}}>
+                  <Hatch />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(5,5,8,0.75) 0%,transparent 55%)"}}/>
+                  <div style={{position:"absolute",top:9,left:9,display:"flex",gap:8}}>
+                    <span className="live-badge">● LIVE</span>
+                    <span style={{background:"rgba(0,0,0,0.6)",color:"var(--text2)",fontSize:10,fontFamily:"var(--fm)",padding:"3px 8px",borderRadius:4}}>{s.time}</span>
+                  </div>
+                  <div style={{position:"absolute",bottom:9,left:9,right:9}}>
+                    <p style={{color:"var(--text2)",fontSize:11}}>{s.user}</p>
+                    <p style={{color:"#fff",fontWeight:600,fontSize:13}}>{s.title}</p>
+                  </div>
+                </div>
+                <div style={{background:"var(--bg2)",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{color:"var(--text2)",fontSize:12}}>{s.viewers} watching</span>
+                  <button style={{background:"linear-gradient(135deg,var(--cyan),var(--purple))",border:"none",borderRadius:8,padding:"6px 14px",color:"#050508",fontSize:12,fontWeight:700}}>Watch</button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Go live sheet */}
+          <AnimatePresence>
+            {goLive&&(
+              <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+                style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"flex-end",justifyContent:"center"}}
+                onClick={()=>setGoLive(false)}>
+                <motion.div initial={{y:220}} animate={{y:0}} exit={{y:220}} transition={{type:"spring",damping:28}}
+                  onClick={e=>e.stopPropagation()}
+                  style={{width:"100%",maxWidth:480,background:"var(--bg2)",borderRadius:"24px 24px 0 0",padding:"26px 22px max(26px,env(safe-area-inset-bottom))",border:"1px solid var(--border2)"}}>
+                  <div style={{width:36,height:4,background:"var(--border2)",borderRadius:2,margin:"0 auto 22px"}}/>
+                  <h2 style={{color:"var(--text)",fontSize:20,fontWeight:700,marginBottom:4}}>Go Live</h2>
+                  <p style={{color:"var(--text3)",fontSize:13,marginBottom:18}}>Set up your broadcast before starting</p>
+                  <div style={{marginBottom:14}}>
+                    <label style={{color:"var(--text2)",fontSize:11,fontWeight:700,letterSpacing:0.8,display:"block",marginBottom:6}}>STREAM TITLE</label>
+                    <input className="input-field" placeholder="What are you streaming today?" value={title} onChange={e=>setTitle(e.target.value)} />
+                  </div>
+                  <div style={{marginBottom:20}}>
+                    <label style={{color:"var(--text2)",fontSize:11,fontWeight:700,letterSpacing:0.8,display:"block",marginBottom:8}}>CATEGORY</label>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      {["Gaming","Just Chatting","Music","Creative","IRL"].map(c=>(
+                        <button key={c} style={{padding:"7px 14px",borderRadius:20,border:"1px solid var(--border2)",background:"var(--bg3)",color:"var(--text2)",fontSize:12,fontWeight:500}}>{c}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <button className="btn-primary" onClick={()=>{if(title.trim()){setCasting(true);setGoLive(false);}}}
+                    style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                    <Icon name="Radio" size={18} color="#050508" /> Start Broadcasting
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PROFILE
+    // ════════════════════════════════════════════════════════════════════════
+    function ProfileView({ user, onLogout }) {
+      const [tab,setTab] = useState("videos");
+      const grid = [GR[0],GR[1],GR[3],GR[2],GR[4],GR[5]];
+
+      return (
+        <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <h2 style={{color:"var(--text)",fontWeight:700,fontSize:17}}>Profile</h2>
+            <div style={{display:"flex",gap:12}}>
+              <button style={{background:"none",border:"none"}}><Icon name="Share2" size={20} color="var(--text2)" /></button>
+              <button style={{background:"none",border:"none"}} onClick={onLogout}><Icon name="LogOut" size={20} color="var(--text2)" /></button>
+            </div>
+          </div>
+
+          <div style={{flex:1,overflowY:"auto"}}>
+            <div style={{padding:"0 16px 18px"}}>
+              <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:14}}>
+                <div style={{position:"relative"}}>
+                  <div style={{width:84,height:84,borderRadius:"50%",background:"linear-gradient(135deg,var(--cyan),var(--purple))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,fontWeight:900,color:"#050508",fontFamily:"var(--fd)",letterSpacing:1}}>
+                    {(user.username||"D")[0].toUpperCase()}
+                  </div>
+                  <div style={{position:"absolute",bottom:2,right:2,width:18,height:18,borderRadius:"50%",background:"var(--cyan)",border:"2px solid var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <Icon name="Check" size={10} color="#050508" sw={3} />
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button style={{padding:"9px 20px",borderRadius:10,border:"1px solid var(--border2)",background:"var(--surface)",color:"var(--text)",fontSize:13,fontWeight:600}}>Edit Profile</button>
+                  <button style={{width:38,height:38,borderRadius:10,border:"1px solid var(--border2)",background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <Icon name="Settings" size={18} color="var(--text2)" />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{marginBottom:10}}>
+                <h1 style={{color:"var(--text)",fontWeight:700,fontSize:20,marginBottom:2}}>{user.username}</h1>
+                <p style={{color:"var(--text3)",fontSize:13,fontFamily:"var(--fm)"}}>{user.handle}</p>
+              </div>
+              <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.55,marginBottom:16}}>Professional streamer · FPS specialist · Ranked Top 0.1%</p>
+
+              <div style={{display:"flex",background:"var(--bg3)",borderRadius:12,border:"1px solid var(--border)",overflow:"hidden",marginBottom:14}}>
+                {[{l:"Followers",v:"2.4M"},{l:"Following",v:"340"},{l:"Likes",v:"18.2M"}].map(s=>(
+                  <div key={s.l} className="stat-box">
+                    <span style={{color:"var(--text)",fontWeight:700,fontSize:18}}>{s.v}</span>
+                    <span style={{color:"var(--text3)",fontSize:11}}>{s.l}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{display:"flex",gap:8}}>
+                {["Twitter","Twitch","Discord"].map(s=>(
+                  <button key={s} style={{flex:1,padding:"8px 0",borderRadius:8,border:"1px solid var(--border2)",background:"var(--surface)",color:"var(--text2)",fontSize:11,fontWeight:600}}>{s}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{borderTop:"1px solid var(--border)",borderBottom:"1px solid var(--border)"}}>
+              <div style={{display:"flex"}}>
+                {[{id:"videos",icon:"Video"},{id:"liked",icon:"Heart"},{id:"saved",icon:"Bookmark"},{id:"reposts",icon:"Repeat2"}].map(t=>(
+                  <button key={t.id} onClick={()=>setTab(t.id)}
+                    style={{flex:1,padding:"13px 0",background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?"var(--cyan)":"transparent"}`,display:"flex",alignItems:"center",justifyContent:"center",transition:"border-color 0.2s"}}>
+                    <Icon name={t.icon} size={18} color={tab===t.id?"var(--cyan)":"var(--text3)"} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:1.5,background:"var(--border)"}}>
+              {grid.map((g,i)=>(
+                <div key={i} style={{aspectRatio:"9/16",background:g,position:"relative",cursor:"pointer"}}>
+                  <Hatch />
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(5,5,8,0.72) 0%,transparent 50%)"}}/>
+                  <div style={{position:"absolute",bottom:6,left:6,display:"flex",alignItems:"center",gap:3}}>
+                    <Icon name="Play" size={10} color="#fff" />
+                    <span style={{color:"#fff",fontSize:10,fontWeight:600}}>{Math.floor(Math.random()*900+100)}K</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CAMERA
+    // ════════════════════════════════════════════════════════════════════════
+    function CameraView({ onClose }) {
+      const [rec,setRec]       = useState(false);
+      const [dur,setDur]       = useState("15s");
+      const [elapsed,setElap] = useState(0);
+      const [ready,setReady]  = useState(false);
+      const [camErr,setCamErr] = useState("");
+      const [mr,setMr]         = useState(null);
+      const [stream,setStream] = useState(null);
+      const vRef = useRef(null);
+      const tRef = useRef(null);
+      const DURS = {_10:"10s",_15:"15s",_20:"20s",_1m:"1m",_5m:"5m"};
+      const SECS = {"10s":10,"15s":15,"20s":20,"1m":60,"5m":300};
+
+      useEffect(()=>{
+        let s;
+        (async()=>{
+          try {
+            s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:true});
+            setStream(s);
+            if(vRef.current){vRef.current.srcObject=s; vRef.current.play();}
+            setReady(true);
+          } catch { setCamErr("Camera access denied — enable permissions to record."); }
+        })();
+        return ()=>{if(s)s.getTracks().forEach(t=>t.stop()); clearInterval(tRef.current);};
+      },[]);
+
+      const toggle=()=>{
+        if(!ready)return;
+        if(rec){
+          clearInterval(tRef.current);
+          if(mr&&mr.state!=="inactive")mr.stop();
+          setRec(false); setElap(0);
+        } else {
+          setElap(0);
+          const max=SECS[dur];
+          tRef.current=setInterval(()=>{
+            setElap(e=>{
+              if(e+1>=max){clearInterval(tRef.current);setRec(false);return 0;}
+              return e+1;
+            });
+          },1000);
+          try{const m=new MediaRecorder(stream);m.start();setMr(m);}catch{}
+          setRec(true);
+        }
+      };
+
+      const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+      const pct=rec?elapsed/SECS[dur]:0;
+
+      return (
+        <div className="camera-screen">
+          <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+            {ready
+              ? <video ref={vRef} autoPlay playsInline muted style={{width:"100%",height:"100%",objectFit:"cover",transform:"scaleX(-1)"}}/>
+              : <div style={{width:"100%",height:"100%",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14}}>
+                  {camErr
+                    ? <><Icon name="CameraOff" size={44} color="var(--text3)" /><p style={{color:"var(--text3)",fontSize:14,textAlign:"center",padding:"0 30px"}}>{camErr}</p></>
+                    : <><Spinner size={32} color="var(--text3)"/><p style={{color:"var(--text3)",fontSize:14}}>Starting camera...</p></>
+                  }
+                </div>
+            }
+
+            {/* top controls */}
+            <div style={{position:"absolute",top:0,left:0,right:0,padding:"max(16px,env(safe-area-inset-top)) 16px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(to bottom,rgba(0,0,0,0.65),transparent)"}}>
+              <button onClick={onClose} style={{width:38,height:38,borderRadius:"50%",background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.14)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon name="X" size={18} color="#fff" />
+              </button>
+              {rec&&(
+                <motion.div initial={{opacity:0}} animate={{opacity:1}}
+                  style={{display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.65)",padding:"6px 14px",borderRadius:20}}>
+                  <motion.div animate={{opacity:[1,0,1]}} transition={{repeat:Infinity,duration:1}}
+                    style={{width:8,height:8,borderRadius:"50%",background:"var(--pink)"}}/>
+                  <span style={{color:"#fff",fontFamily:"var(--fm)",fontSize:13}}>{fmt(elapsed)}</span>
+                </motion.div>
+              )}
+              <button style={{width:38,height:38,borderRadius:"50%",background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.14)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon name="FlipHorizontal2" size={18} color="#fff" />
+              </button>
+            </div>
+
+            {/* progress */}
+            {rec&&(
+              <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"rgba(255,255,255,0.18)"}}>
+                <motion.div initial={{width:0}} animate={{width:`${pct*100}%`}} transition={{duration:0.5}}
+                  style={{height:"100%",background:"linear-gradient(90deg,var(--cyan),var(--pink))"}}/>
+              </div>
+            )}
+
+            {!rec&&<div style={{position:"absolute",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)",backgroundSize:"33.33% 33.33%"}}/>}
+          </div>
+
+          <div style={{background:"rgba(0,0,0,0.92)",padding:"18px 22px max(22px,env(safe-area-inset-bottom))"}}>
+            <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:26,overflowX:"auto",paddingBottom:2}}>
+              {Object.values(DURS).map(d=>(
+                <button key={d} className={`dur-pill${dur===d?" active":""}`} onClick={()=>!rec&&setDur(d)} style={{opacity:rec?0.45:1}}>{d}</button>
+              ))}
+            </div>
+
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{width:54,height:54,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon name="Image" size={22} color="var(--text2)" />
+              </div>
+              <div className="rec-outer" onClick={toggle} style={{borderColor:rec?"var(--pink)":"#fff"}}>
+                <div className={`rec-inner${rec?" on":""}`}/>
+              </div>
+              <div style={{width:54,height:54,borderRadius:10,background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon name="Sparkles" size={22} color="var(--text2)" />
+              </div>
+            </div>
+
+            <div style={{display:"flex",justifyContent:"center",gap:24,marginTop:18}}>
+              {["Collab","Video","Photo","Text"].map((m,i)=>(
+                <button key={m} style={{background:"none",border:"none",color:i===1?"var(--cyan)":"var(--text3)",fontSize:12,fontWeight:i===1?700:500,borderBottom:i===1?"2px solid var(--cyan)":"2px solid transparent",paddingBottom:4}}>{m}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ROOT APP
+    // ════════════════════════════════════════════════════════════════════════
+    const NAV = [
+      {id:"home",   icon:"Home",     label:"Home"},
+      {id:"gaming", icon:"Gamepad2", label:"Gaming"},
+      {id:"create", icon:"Plus",     label:"",   isCreate:true},
+      {id:"live",   icon:"Radio",    label:"Live"},
+      {id:"profile",icon:"User",     label:"Me"},
+    ];
+
+    function App() {
+      const [user,setUser]       = useState(null);
+      const [view,setView]       = useState("home");
+      const [camera,setCamera]   = useState(false);
+
+      if(!user) return <AuthScreen onAuth={setUser} />;
+
+      return (
+        <div className="app-shell">
+          <div style={{flex:1,overflow:"hidden",position:"relative"}}>
+            <AnimatePresence mode="wait">
+              <motion.div key={view}
+                initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}}
+                transition={{duration:0.16,ease:"easeOut"}}
+                style={{height:"100%",overflow:"hidden"}}>
+                {view==="home"    && <HomeView user={user}/>}
+                {view==="gaming"  && <GamingView/>}
+                {view==="live"    && <LiveView user={user}/>}
+                {view==="profile" && <ProfileView user={user} onLogout={()=>{setUser(null);setView("home");}}/>}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="bottom-nav glass-dark" style={{position:"relative",zIndex:50}}>
+            {NAV.map(n=>{
+              if(n.isCreate) return (
+                <button key="create" className="nav-btn-create" onClick={()=>setCamera(true)}>
+                  <Icon name="Plus" size={26} color="#050508" sw={2.5}/>
+                </button>
+              );
+              return (
+                <button key={n.id} className={`nav-btn${view===n.id?" active":""}`} onClick={()=>setView(n.id)}>
+                  <Icon name={n.icon} size={22} color={view===n.id?"var(--cyan)":"var(--text3)"} sw={view===n.id?2.2:1.8}/>
+                  {n.label&&<span>{n.label}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence>
+            {camera&&(
+              <motion.div initial={{y:"100%"}} animate={{y:0}} exit={{y:"100%"}}
+                transition={{type:"spring",damping:28,stiffness:200}}
+                style={{position:"fixed",inset:0,zIndex:200}}>
+                <CameraView onClose={()=>setCamera(false)}/>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    // Hide splash and mount
+    const splash = document.getElementById("splash");
+    if(splash) splash.style.display="none";
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
   </script>
 </body>
 </html>
-
