@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SU ZU — The Edge</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 pinned -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Babel Standalone pinned -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+
+  <!-- Framer Motion pinned — UMD global is window.Motion -->
+  <script src="https://unpkg.com/framer-motion@10.18.0/dist/framer-motion.js" crossorigin></script>
+
+  <!-- Supabase pinned -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+
+  <!-- Alias window.Motion -> window.FramerMotion immediately after the script loads -->
+  <script>
+    if (window.Motion && !window.FramerMotion) window.FramerMotion = window.Motion;
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #09090b;
+      --glass:    rgba(24,24,27,0.78);
+      --border:   rgba(6,182,212,0.18);
+      --cyan:     #06b6d4;
+      --cdim:     rgba(6,182,212,0.25);
+      --z800:     #27272a;
+      --z700:     #3f3f46;
+      --z600:     #52525b;
+      --z400:     #a1a1aa;
+    }
+
+    html, body, #root {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #e4e4e7;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 99px; }
+
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--border);
+    }
+    .glass-nav {
+      background: rgba(9,9,11,0.9);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-top: 1px solid var(--border);
+    }
+    .bg-mesh {
+      background:
+        radial-gradient(ellipse 70% 55% at 15% 20%, rgba(6,182,212,0.09) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 65% at 85% 80%, rgba(6,182,212,0.06) 0%, transparent 65%),
+        #09090b;
+    }
+
+    /* snap feed */
+    .feed-wrap { height:100%; overflow-y:scroll; scroll-snap-type:y mandatory; }
+    .feed-item { height:100%; scroll-snap-align:start; scroll-snap-stop:always; position:relative; overflow:hidden; }
+
+    .brand { font-family:'Syncopate',sans-serif; }
+
+    .btn-cyan {
+      background: linear-gradient(135deg,#06b6d4,#0891b2);
+      color:#000; font-weight:800; font-family:'Plus Jakarta Sans',sans-serif;
+      letter-spacing:.06em; border:none; cursor:pointer;
+      transition:box-shadow .2s, transform .15s;
+      box-shadow:0 4px 20px rgba(6,182,212,.3);
+    }
+    .btn-cyan:hover  { box-shadow:0 4px 34px rgba(6,182,212,.55); transform:translateY(-1px); }
+    .btn-cyan:active { transform:translateY(0); }
+    .btn-ghost {
+      background:transparent; border:1px solid var(--z800);
+      color:var(--z400); font-family:'Plus Jakarta Sans',sans-serif;
+      cursor:pointer; transition:border-color .2s, color .2s;
+    }
+    .btn-ghost:hover { border-color:var(--cyan); color:var(--cyan); }
+
+    .inp {
+      background:rgba(39,39,42,.6); border:1px solid var(--z700);
+      color:#e4e4e7; font-family:'Plus Jakarta Sans',sans-serif;
+      transition:border-color .2s, box-shadow .2s; width:100%;
+    }
+    .inp:focus { outline:none; border-color:var(--cyan); box-shadow:0 0 0 3px rgba(6,182,212,.12); }
+    .inp::placeholder { color:var(--z600); }
+
+    .vid-overlay {
+      position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(to top,
+        rgba(9,9,11,.96) 0%, rgba(9,9,11,.35) 40%,
+        rgba(9,9,11,.06) 75%, transparent 100%);
+    }
+
+    .inner-scroll { overflow-y:auto; height:calc(100% - 60px); }
+
+    .av-ring { background:conic-gradient(from 0deg,#06b6d4,#164e63,#06b6d4); border-radius:50%; padding:2px; display:inline-flex; }
+
+    .tog { width:38px; height:21px; border-radius:99px; background:var(--z700); position:relative; cursor:pointer; transition:background .25s; }
+    .tog.on { background:var(--cyan); }
+    .tog-thumb { position:absolute; top:3px; left:3px; width:15px; height:15px; border-radius:50%; background:#fff; transition:transform .25s; }
+    .tog.on .tog-thumb { transform:translateX(17px); }
+
+    @keyframes liveblink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .live-dot { animation:liveblink 1.1s ease-in-out infinite; }
+
+    .stat-bar { height:3px; border-radius:99px; background:linear-gradient(90deg,var(--cyan),#0e7490); box-shadow:0 0 8px var(--cdim); transition:width 1.2s ease; }
+
+    .toast-wrap {
+      position:fixed; top:20px; left:50%; transform:translateX(-50%);
+      z-index:9999; background:rgba(9,9,11,.95); border:1px solid var(--border);
+      backdrop-filter:blur(20px); border-radius:14px; padding:10px 22px;
+      font-size:13px; white-space:nowrap; box-shadow:0 8px 40px rgba(0,0,0,.6);
+    }
+
+    .wm {
+      position:absolute; bottom:14px; right:14px;
+      font-family:'Syncopate',sans-serif; font-size:9px; font-weight:700;
+      color:rgba(6,182,212,.75); letter-spacing:.22em;
+      text-shadow:0 0 10px rgba(6,182,212,.4); pointer-events:none;
+    }
+
+    .c-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
+
+    .m-backdrop {
+      position:fixed; inset:0; z-index:600;
+      background:rgba(0,0,0,.82); backdrop-filter:blur(8px);
+      display:flex; align-items:flex-end; justify-content:center;
+    }
+    .m-sheet {
+      width:100%; max-width:480px; background:#18181b;
+      border-radius:22px 22px 0 0; border-top:1px solid var(--border);
+      padding:24px 20px 36px; max-height:88vh; overflow-y:auto;
+    }
+
+    .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; z-index:200; }
+
+    .nbadge {
+      position:absolute; top:-3px; right:-3px; width:15px; height:15px;
+      border-radius:50%; background:var(--cyan); color:#000;
+      font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    }
+
+    @keyframes pulse-c {
+      0%,100%{ box-shadow:0 0 20px var(--cdim); }
+      50%    { box-shadow:0 0 50px var(--cdim); }
+    }
+    .pulse-c { animation:pulse-c 2s ease-in-out infinite; }
+
+    .create-ring { background:conic-gradient(from 180deg,var(--cyan),#0e7490,var(--cyan)); border-radius:16px; padding:2px; }
+    .create-inner { background:#09090b; border-radius:14px; }
+
+    /* gradient presets */
+    .g-cyan   { background:linear-gradient(160deg,#083344 0%,#09090b 100%); }
+    .g-violet { background:linear-gradient(160deg,#2e1065 0%,#09090b 100%); }
+    .g-green  { background:linear-gradient(160deg,#052e16 0%,#09090b 100%); }
+    .g-rose   { background:linear-gradient(160deg,#4c0519 0%,#09090b 100%); }
+    .g-amber  { background:linear-gradient(160deg,#451a03 0%,#09090b 100%); }
+    .g-sky    { background:linear-gradient(160deg,#082f49 0%,#09090b 100%); }
+
+    .max-app { max-width:480px; margin:0 auto; height:100%; position:relative; }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <!-- Static fallback shown until React mounts -->
+    <div id="sz-loader" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#09090b;gap:18px;">
+      <div style="width:62px;height:62px;border-radius:18px;border:1px solid rgba(6,182,212,.35);display:flex;align-items:center;justify-content:center;">
+        <span style="font-family:'Syncopate',sans-serif;font-size:14px;font-weight:700;color:#06b6d4;letter-spacing:.1em;">SZ</span>
+      </div>
+      <span style="font-family:'Syncopate',sans-serif;font-size:10px;color:#3f3f46;letter-spacing:.3em;">LOADING THE EDGE</span>
+    </div>
+  </div>
+
+  <script type="text/babel">
+    /* ================================================================
+       GLOBALS
+    ================================================================ */
+    const { useState, useRef, useEffect } = React;
+
+    // Framer Motion — UMD exposes as window.Motion; we aliased it above
+    const FM            = window.FramerMotion || window.Motion || {};
+    const motion        = FM.motion        || {};
+    const AnimatePresence = FM.AnimatePresence || (({ children }) => children);
+
+    // Supabase
+    const { createClient } = supabase;
+    const SB_URL = "https://YOUR_PROJECT.supabase.co";  // ← replace
+    const SB_KEY = "YOUR_ANON_KEY";                      // ← replace
+    let sb = null;
+    try { sb = createClient(SB_URL, SB_KEY); } catch(_) {}
+
+    /* ================================================================
+       DATA
+    ================================================================ */
+    const TRIBES    = ["Global","Gaming","Tech","Local","Music","Art"];
+    const DURATIONS = ["10s","15s","60s","3m","5m"];
+    const GS        = ["g-cyan","g-violet","g-green","g-rose","g-amber","g-sky"];
+
+    const FEED = [
+      { id:1, user:"aria.waves",  av:"AW", tribe:"Tech",   verified:true,
+        caption:"Next-gen neural interfaces are shipping faster than expected. The edge is real. 🧠⚡",
+        likes:"284K", comments:"12.4K", shares:"38K", reach:"2.1M", dur:"0:47", g:"g-cyan",   remix:false },
+      { id:2, user:"xo.cipher",   av:"XC", tribe:"Gaming", verified:true,
+        caption:"1v1 ranked grind never stops. Server node SIGMA-7 is open — join the Tribe.",
+        likes:"512K", comments:"28K",  shares:"91K", reach:"4.8M", dur:"1:00", g:"g-violet", remix:true  },
+      { id:3, user:"sol.render",  av:"SR", tribe:"Art",    verified:false,
+        caption:"Generative landscapes at 4K. Every frame is a unique computation.",
+        likes:"97K",  comments:"5.1K", shares:"14K", reach:"820K", dur:"0:15", g:"g-green",  remix:false },
+      { id:4, user:"nova.flux",   av:"NF", tribe:"Music",  verified:true,
+        caption:"Live session from the studio — no cuts, no edits, just raw frequency.",
+        likes:"1.2M", comments:"44K",  shares:"210K",reach:"9.3M", dur:"5:00", g:"g-rose",   remix:false },
+    ];
+
+    const LIVE_STREAMS = [
+      { id:1, user:"xo.cipher",  av:"XC", title:"RANKED GRIND — Top 100 Push",   viewers:"18.4K", tribe:"Gaming" },
+      { id:2, user:"aria.waves", av:"AW", title:"AI Infrastructure Deep Dive",    viewers:"9.2K",  tribe:"Tech"   },
+      { id:3, user:"nova.flux",  av:"NF", title:"Studio Session — Album 3",       viewers:"31K",   tribe:"Music"  },
+      { id:4, user:"sol.render", av:"SR", title:"Generative Art — Live Compile",  viewers:"5.7K",  tribe:"Art"    },
+    ];
+
+    const SERVERS = [
+      { id:1, name:"SIGMA-7 Gaming",    members:"120K", tribe:"Gaming", active:true  },
+      { id:2, name:"Neural Collective", members:"88K",  tribe:"Tech",   active:true  },
+      { id:3, name:"Sound Architects",  members:"54K",  tribe:"Music",  active:false },
+      { id:4, name:"Render Republic",   members:"32K",  tribe:"Art",    active:true  },
+    ];
+
+    const AV_COLORS = { AW:"#083344", XC:"#2e1065", SR:"#052e16", NF:"#4c0519", YD:"#0c4a6e" };
+
+    /* ================================================================
+       SMALL SHARED COMPONENTS
+    ================================================================ */
+    function Avatar({ code, size=36, ring=false }) {
+      const inner = (
+        <div style={{ width:size, height:size, borderRadius:"50%",
+          background: AV_COLORS[code] || "#18181b",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          fontSize:size*.28, fontWeight:700, color:"var(--cyan)",
+          fontFamily:"'Syncopate',sans-serif", flexShrink:0 }}>
+          {code}
+        </div>
+      );
+      if (!ring) return inner;
+      return (
+        <div className="av-ring"
+          style={{ width:size+4, height:size+4, display:"inline-flex",
+            alignItems:"center", justifyContent:"center" }}>
+          {inner}
+        </div>
+      );
+    }
+
+    function Tog({ on, set }) {
+      return (
+        <div className={`tog ${on ? "on" : ""}`} onClick={() => set(!on)}>
+          <div className="tog-thumb" />
+        </div>
+      );
+    }
+
+    function Toast({ msg, done }) {
+      useEffect(() => {
+        const t = setTimeout(done, 2400);
+        return () => clearTimeout(t);
+      }, []);
+      return (
+        <div className="toast-wrap">
+          <i className="bi bi-check-circle-fill"
+            style={{ color:"var(--cyan)", marginRight:8 }} />
+          {msg}
+        </div>
+      );
+    }
+
+    /* ================================================================
+       AUTH
+    ================================================================ */
+    function AuthScreen({ onAuth }) {
+      const [mode,  setMode]  = useState("login");
+      const [email, setEmail] = useState("");
+      const [pass,  setPass]  = useState("");
+      const [uname, setUname] = useState("");
+      const [busy,  setBusy]  = useState(false);
+      const [err,   setErr]   = useState("");
+
+      async function submit() {
+        setErr(""); setBusy(true);
+        try {
+          if (!sb) throw new Error("no-supabase");
+          if (mode === "signup") {
+            const { data, error } = await sb.auth.signUp({ email, password:pass });
+            if (error) throw error;
+            await sb.from("profiles").insert({ id:data.user.id, username:uname, email });
+            onAuth({ email, username: uname || email.split("@")[0], id: data.user.id });
+          } else {
+            const { data, error } = await sb.auth.signInWithPassword({ email, password:pass });
+            if (error) throw error;
+            const p = await sb.from("profiles").select("username").eq("id", data.user.id).single();
+            onAuth({ email, username: p.data?.username || email.split("@")[0], id: data.user.id });
+          }
+        } catch {
+          if (email && pass) {
+            onAuth({ email, username: uname || email.split("@")[0], id:"demo" });
+          } else {
+            setErr("Enter your email and password to continue.");
+          }
+        }
+        setBusy(false);
+      }
+
+      return (
+        <div className="bg-mesh" style={{ height:"100%", display:"flex",
+          alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div className="glass" style={{ width:"100%", maxWidth:400,
+            borderRadius:24, padding:36 }}>
+            {/* Brand */}
+            <div style={{ textAlign:"center", marginBottom:32 }}>
+              <div className="brand" style={{ fontSize:30, fontWeight:700,
+                color:"var(--cyan)", letterSpacing:".3em",
+                textShadow:"0 0 24px rgba(6,182,212,.45)" }}>SU ZU</div>
+              <div style={{ fontSize:10, color:"var(--z600)",
+                letterSpacing:".2em", marginTop:5 }}>
+                PROFESSIONAL SOCIAL ECOSYSTEM
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display:"flex", background:"#18181b",
+              borderRadius:12, padding:4, marginBottom:24 }}>
+              {["login","signup"].map(m => (
+                <button key={m} onClick={() => setMode(m)} style={{
+                  flex:1, padding:"8px 0", borderRadius:9, border:"none", cursor:"pointer",
+                  background: mode===m ? "var(--cyan)" : "transparent",
+                  color: mode===m ? "#000" : "var(--z600)",
+                  fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800,
+                  fontSize:12, letterSpacing:".06em", transition:"all .2s",
+                }}>
+                  {m === "login" ? "SIGN IN" : "JOIN"}
+                </button>
+              ))}
+            </div>
+
+            {/* Fields */}
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {mode === "signup" && (
+                <input className="inp" placeholder="Username" value={uname}
+                  onChange={e => setUname(e.target.value)}
+                  style={{ borderRadius:12, padding:"12px 16px", fontSize:14 }} />
+              )}
+              <input className="inp" type="email" placeholder="Email" value={email}
+                onChange={e => setEmail(e.target.value)}
+                style={{ borderRadius:12, padding:"12px 16px", fontSize:14 }} />
+              <input className="inp" type="password" placeholder="Password" value={pass}
+                onChange={e => setPass(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && submit()}
+                style={{ borderRadius:12, padding:"12px 16px", fontSize:14 }} />
+            </div>
+
+            {err && (
+              <div style={{ color:"#f87171", fontSize:12, marginTop:10, textAlign:"center" }}>
+                {err}
+              </div>
+            )}
+
+            <button className="btn-cyan" onClick={submit} disabled={busy}
+              style={{ width:"100%", padding:"14px", borderRadius:12, marginTop:20,
+                fontSize:12, letterSpacing:".08em" }}>
+              {busy ? "CONNECTING…" : mode === "login" ? "ENTER THE EDGE" : "CREATE IDENTITY"}
+            </button>
+
+            <button className="btn-ghost"
+              onClick={() => onAuth({ email:"demo@suzu.io", username:"you.demo", id:"demo" })}
+              style={{ width:"100%", padding:"11px", borderRadius:12, marginTop:10,
+                fontSize:11, letterSpacing:".06em" }}>
+              DEMO — NO ACCOUNT NEEDED
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       THREAD MODAL
+    ================================================================ */
+    function ThreadModal({ item, close }) {
+      const threads = [
+        { u:"node.zero",  t:"The edge is real — this hit different.", n:2041 },
+        { u:"pixel.ruth", t:"Dropping this into my AI remix queue 🔥", n:887  },
+        { u:"sync.91",    t:"Reply threads are a game changer on SU ZU.", n:441 },
+      ];
+      return (
+        <div className="m-backdrop" onClick={close}>
+          <div className="m-sheet" onClick={e => e.stopPropagation()}>
+            <div style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between", marginBottom:20 }}>
+              <span style={{ fontWeight:700, fontSize:15 }}>Threaded Replies</span>
+              <i className="bi bi-x-lg"
+                style={{ cursor:"pointer", color:"var(--z600)" }} onClick={close} />
+            </div>
+            {threads.map((c, i) => (
+              <div key={i} style={{ display:"flex", gap:12, marginBottom:18 }}>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+                  <Avatar code={c.u.slice(0,2).toUpperCase()} size={34} />
+                  {i < 2 && (
+                    <div style={{ width:2, flex:1, minHeight:16, marginTop:4,
+                      background:"linear-gradient(to bottom,var(--cyan),transparent)" }} />
+                  )}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                    <span style={{ fontWeight:700, fontSize:13 }}>@{c.u}</span>
+                    <span style={{ fontSize:10, color:"var(--z600)" }}>• 2h</span>
+                  </div>
+                  <p style={{ fontSize:13, color:"var(--z400)", lineHeight:1.55 }}>{c.t}</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:6 }}>
+                    <i className="bi bi-heart" style={{ fontSize:12, color:"var(--z600)" }} />
+                    <span style={{ fontSize:11, color:"var(--z600)" }}>{c.n.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div style={{ display:"flex", gap:10, marginTop:8 }}>
+              <input className="inp" placeholder="Add a reply…"
+                style={{ borderRadius:12, padding:"10px 14px", fontSize:13 }} />
+              <button className="btn-cyan"
+                style={{ borderRadius:12, padding:"10px 16px", fontSize:13, flexShrink:0 }}>
+                <i className="bi bi-send-fill" />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       SHARE MODAL
+    ================================================================ */
+    function ShareModal({ item, close }) {
+      const opts = [
+        { icon:"bi-link-45deg", label:"Copy Link" },
+        { icon:"bi-chat-dots",  label:"Message"   },
+        { icon:"bi-collection", label:"Story"      },
+        { icon:"bi-download",   label:"Save"       },
+      ];
+      return (
+        <div className="m-backdrop" onClick={close}>
+          <div className="m-sheet" onClick={e => e.stopPropagation()}>
+            <div style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between", marginBottom:20 }}>
+              <span style={{ fontWeight:700, fontSize:15 }}>Share with SU ZU Watermark</span>
+              <i className="bi bi-x-lg"
+                style={{ cursor:"pointer", color:"var(--z600)" }} onClick={close} />
+            </div>
+            <div className={item.g} style={{ borderRadius:16, padding:20,
+              marginBottom:20, position:"relative", minHeight:90 }}>
+              <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,.35)",
+                borderRadius:16 }} />
+              <div style={{ position:"relative", fontWeight:700, fontSize:13 }}>@{item.user}</div>
+              <div style={{ position:"relative", fontSize:12,
+                color:"rgba(255,255,255,.7)", marginTop:4 }}>
+                {item.caption.slice(0,60)}…
+              </div>
+              <div className="wm">SU ZU</div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
+              {opts.map(o => (
+                <div key={o.icon} style={{ display:"flex", flexDirection:"column",
+                  alignItems:"center", gap:7, cursor:"pointer" }}>
+                  <div className="glass" style={{ width:52, height:52, borderRadius:16,
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <i className={`bi ${o.icon}`}
+                      style={{ fontSize:20, color:"var(--cyan)" }} />
+                  </div>
+                  <span style={{ fontSize:10, color:"var(--z600)" }}>{o.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       FEED ITEM
+    ================================================================ */
+    function FeedItem({ item }) {
+      const [liked,     setLiked]     = useState(false);
+      const [remix,     setRemix]     = useState(item.remix);
+      const [showThr,   setShowThr]   = useState(false);
+      const [showShare, setShowShare] = useState(false);
+
+      return (
+        <div className={`feed-item ${item.g}`}>
+          <div style={{ position:"absolute", inset:0, pointerEvents:"none",
+            background:"radial-gradient(ellipse at 50% 30%,rgba(6,182,212,.07),transparent 70%)" }} />
+          <div className="vid-overlay" />
+
+          {/* Badges */}
+          <div className="glass" style={{ position:"absolute", top:72, left:14,
+            borderRadius:8, padding:"3px 10px", fontSize:11,
+            fontWeight:700, color:"var(--cyan)" }}>
+            {item.dur}
+          </div>
+          <div style={{ position:"absolute", top:72, right:14,
+            background:"rgba(6,182,212,.12)", border:"1px solid rgba(6,182,212,.28)",
+            borderRadius:8, padding:"3px 10px", fontSize:10,
+            fontWeight:700, color:"var(--cyan)", letterSpacing:".1em" }}>
+            {item.tribe.toUpperCase()}
+          </div>
+
+          {/* Action bar */}
+          <div style={{ position:"absolute", right:14, bottom:110,
+            display:"flex", flexDirection:"column", gap:22, alignItems:"center" }}>
+
+            <div style={{ position:"relative" }}>
+              <Avatar code={item.av} size={44} ring />
+              <div style={{ position:"absolute", bottom:-6, left:"50%",
+                transform:"translateX(-50%)", background:"var(--cyan)",
+                borderRadius:"50%", width:18, height:18,
+                display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
+                <i className="bi bi-plus" style={{ color:"#000", fontSize:13 }} />
+              </div>
+            </div>
+
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              gap:3, cursor:"pointer" }} onClick={() => setLiked(v => !v)}>
+              <i className={`bi ${liked ? "bi-heart-fill" : "bi-heart"}`}
+                style={{ fontSize:26, color: liked ? "#f43f5e" : "#fff",
+                  transition:"color .2s, transform .15s",
+                  transform: liked ? "scale(1.15)" : "scale(1)" }} />
+              <span style={{ fontSize:11, fontWeight:700,
+                color: liked ? "#f43f5e" : "#fff" }}>{item.likes}</span>
+            </div>
+
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              gap:3, cursor:"pointer" }} onClick={() => setShowThr(true)}>
+              <i className="bi bi-chat-dots" style={{ fontSize:26, color:"#fff" }} />
+              <span style={{ fontSize:11, fontWeight:700, color:"#fff" }}>{item.comments}</span>
+            </div>
+
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              gap:3, cursor:"pointer" }} onClick={() => setShowShare(true)}>
+              <i className="bi bi-send" style={{ fontSize:23, color:"#fff" }} />
+              <span style={{ fontSize:11, fontWeight:700, color:"#fff" }}>{item.shares}</span>
+            </div>
+
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+              <Tog on={remix} set={setRemix} />
+              <span style={{ fontSize:9, fontWeight:700, letterSpacing:".06em",
+                color: remix ? "var(--cyan)" : "var(--z600)" }}>AI MIX</span>
+            </div>
+          </div>
+
+          {/* Bottom info */}
+          <div style={{ position:"absolute", left:14, bottom:86, right:76 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
+              <span style={{ fontWeight:800, fontSize:14 }}>@{item.user}</span>
+              {item.verified && (
+                <i className="bi bi-patch-check-fill"
+                  style={{ color:"var(--cyan)", fontSize:14 }} />
+              )}
+            </div>
+            <p style={{ fontSize:13, color:"rgba(255,255,255,.85)",
+              lineHeight:1.55, marginBottom:8 }}>{item.caption}</p>
+            <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+              <i className="bi bi-graph-up-arrow" style={{ fontSize:12, color:"var(--cyan)" }} />
+              <span style={{ fontSize:11, color:"var(--cyan)", fontWeight:700 }}>
+                {item.reach} reach
+              </span>
+            </div>
+          </div>
+
+          <div className="wm">SU ZU</div>
+
+          {showThr   && <ThreadModal item={item} close={() => setShowThr(false)} />}
+          {showShare && <ShareModal  item={item} close={() => setShowShare(false)} />}
+        </div>
+      );
+    }
+
+    /* ================================================================
+       NEURAL FEED
+    ================================================================ */
+    function NeuralFeed() {
+      const [tribe, setTribe] = useState("Global");
+
+      return (
+        <div style={{ height:"100%", position:"relative" }}>
+          {/* Tribe nav */}
+          <div className="glass" style={{ position:"absolute", top:0, left:0, right:0, zIndex:50,
+            borderRadius:0, borderLeft:"none", borderRight:"none", borderTop:"none",
+            padding:"10px 16px 0" }}>
+            <div style={{ display:"flex", gap:22, overflowX:"auto", paddingBottom:10 }}>
+              {TRIBES.map(t => (
+                <button key={t} onClick={() => setTribe(t)} style={{
+                  background:"none", border:"none", cursor:"pointer",
+                  fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13,
+                  fontWeight: tribe===t ? 800 : 500,
+                  color: tribe===t ? "var(--cyan)" : "var(--z600)",
+                  position:"relative", paddingBottom:4, flexShrink:0,
+                  transition:"color .2s",
+                }}>
+                  {t}
+                  {tribe === t && (
+                    <div style={{ position:"absolute", bottom:0, left:"50%",
+                      transform:"translateX(-50%)", width:16, height:2,
+                      borderRadius:99, background:"var(--cyan)",
+                      boxShadow:"0 0 8px rgba(6,182,212,.5)" }} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Snap scroll */}
+          <div className="feed-wrap">
+            {FEED.map(item => <FeedItem key={item.id} item={item} />)}
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       CREATE MENU
+    ================================================================ */
+    function CreateMenu({ close }) {
+      const [dur,    setDur]    = useState("15s");
+      const [rec,    setRec]    = useState(false);
+      const [camErr, setCamErr] = useState("");
+      const vidRef    = useRef(null);
+      const streamRef = useRef(null);
+
+      async function toggleCam() {
+        if (rec) {
+          streamRef.current?.getTracks().forEach(t => t.stop());
+          setRec(false); return;
+        }
+        try {
+          const s = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+          streamRef.current = s;
+          if (vidRef.current) vidRef.current.srcObject = s;
+          setRec(true);
+        } catch { setCamErr("Camera access denied — check browser permissions."); }
+      }
+
+      useEffect(() => () => {
+        streamRef.current?.getTracks().forEach(t => t.stop());
+      }, []);
+
+      return (
+        <div className="m-backdrop" onClick={close}>
+          <div className="m-sheet" onClick={e => e.stopPropagation()}>
+            <div style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between", marginBottom:20 }}>
+              <span className="brand" style={{ fontSize:14, fontWeight:700,
+                color:"var(--cyan)", letterSpacing:".15em" }}>CREATE</span>
+              <i className="bi bi-x-lg"
+                style={{ cursor:"pointer", color:"var(--z600)" }} onClick={close} />
+            </div>
+
+            {/* Camera preview */}
+            <div style={{ borderRadius:16, overflow:"hidden", background:"#18181b",
+              aspectRatio:"9/16", maxHeight:260, position:"relative", marginBottom:16 }}>
+              <video ref={vidRef} autoPlay muted playsInline
+                style={{ width:"100%", height:"100%", objectFit:"cover",
+                  display: rec ? "block" : "none" }} />
+              {!rec && (
+                <div style={{ position:"absolute", inset:0, display:"flex",
+                  flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12 }}>
+                  <i className="bi bi-camera-video"
+                    style={{ fontSize:40, color:"#27272a" }} />
+                  {camErr && (
+                    <span style={{ fontSize:12, color:"#f87171",
+                      textAlign:"center", padding:"0 20px" }}>{camErr}</span>
+                  )}
+                </div>
+              )}
+              {rec && <>
+                <div style={{ position:"absolute", top:10, left:10, background:"#ef4444",
+                  borderRadius:8, padding:"4px 10px",
+                  display:"flex", alignItems:"center", gap:5 }}>
+                  <div className="live-dot" style={{ width:6, height:6,
+                    borderRadius:"50%", background:"#fff" }} />
+                  <span style={{ fontSize:10, fontWeight:700, color:"#fff" }}>REC</span>
+                </div>
+                <div className="wm">SU ZU</div>
+              </>}
+            </div>
+
+            {/* Duration */}
+            <div style={{ marginBottom:16 }}>
+              <span style={{ fontSize:10, color:"var(--z600)", letterSpacing:".1em",
+                display:"block", marginBottom:8 }}>DURATION</span>
+              <div style={{ display:"flex", gap:6 }}>
+                {DURATIONS.map(d => (
+                  <button key={d} onClick={() => setDur(d)} style={{
+                    flex:1, padding:"8px 0", borderRadius:10, border:"none", cursor:"pointer",
+                    fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800, fontSize:11,
+                    background: dur===d ? "var(--cyan)" : "#27272a",
+                    color: dur===d ? "#000" : "var(--z600)",
+                    boxShadow: dur===d ? "0 0 12px rgba(6,182,212,.4)" : "none",
+                    transition:"all .2s",
+                  }}>{d}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              <button className="btn-cyan" onClick={toggleCam}
+                style={{ padding:13, borderRadius:12, fontSize:12, letterSpacing:".05em",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                <i className={`bi ${rec ? "bi-stop-fill" : "bi-camera-fill"}`} />
+                {rec ? "STOP" : "CAMERA"}
+              </button>
+              <button className="btn-ghost"
+                style={{ padding:13, borderRadius:12, fontSize:12,
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                <i className="bi bi-image" /> UPLOAD
+              </button>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
+              {[["bi-magic","AI Remix"],["bi-music-note","Sound"],["bi-type","Text"]].map(([ic,lb]) => (
+                <div key={ic} className="glass" style={{ borderRadius:12, padding:"12px 8px",
+                  display:"flex", flexDirection:"column", alignItems:"center",
+                  gap:6, cursor:"pointer" }}>
+                  <i className={`bi ${ic}`} style={{ fontSize:20, color:"var(--cyan)" }} />
+                  <span style={{ fontSize:10, color:"var(--z600)" }}>{lb}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       GAMING HUB
+    ================================================================ */
+    function GamingHub() {
+      const [tab, setTab] = useState("live");
+      const TABS = [["live","bi-broadcast"],["servers","bi-hdd-network"],["tournaments","bi-trophy"]];
+
+      return (
+        <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
+          <div className="glass" style={{ padding:"16px 16px 0",
+            borderRadius:0, borderLeft:"none", borderRight:"none", borderTop:"none" }}>
+            <div className="brand" style={{ fontSize:11, fontWeight:700,
+              color:"var(--cyan)", letterSpacing:".22em", marginBottom:14 }}>
+              GAMING & LIVE HUB
+            </div>
+            <div style={{ display:"flex", borderBottom:"1px solid #27272a" }}>
+              {TABS.map(([t, ic]) => (
+                <button key={t} onClick={() => setTab(t)} style={{
+                  flex:1, padding:"10px 0", background:"none", border:"none", cursor:"pointer",
+                  fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:11,
+                  fontWeight:700, letterSpacing:".06em",
+                  color: tab===t ? "var(--cyan)" : "var(--z600)",
+                  borderBottom: tab===t ? "2px solid var(--cyan)" : "2px solid transparent",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                  transition:"all .2s",
+                }}>
+                  <i className={`bi ${ic}`} /> {t.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="inner-scroll" style={{ padding:16 }}>
+            {tab === "live" && (
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                  <div className="live-dot" style={{ width:8, height:8,
+                    borderRadius:"50%", background:"#ef4444" }} />
+                  <span style={{ fontSize:10, fontWeight:700,
+                    color:"#ef4444", letterSpacing:".1em" }}>LIVE NOW</span>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {LIVE_STREAMS.map(s => (
+                    <div key={s.id} className="glass"
+                      style={{ borderRadius:16, display:"flex", overflow:"hidden" }}>
+                      <div className="g-cyan"
+                        style={{ width:100, position:"relative", minHeight:72, flexShrink:0 }}>
+                        <div style={{ position:"absolute", inset:0, display:"flex",
+                          alignItems:"center", justifyContent:"center" }}>
+                          <Avatar code={s.av} size={36} ring />
+                        </div>
+                        <div style={{ position:"absolute", top:6, left:6, background:"#ef4444",
+                          borderRadius:4, padding:"2px 6px", fontSize:9, fontWeight:700,
+                          color:"#fff", display:"flex", alignItems:"center", gap:3 }}>
+                          <div className="live-dot"
+                            style={{ width:4, height:4, borderRadius:"50%", background:"#fff" }} />
+                          LIVE
+                        </div>
+                      </div>
+                      <div style={{ padding:"12px 14px", flex:1 }}>
+                        <div style={{ fontWeight:700, fontSize:13,
+                          lineHeight:1.3, marginBottom:4 }}>{s.title}</div>
+                        <div style={{ fontSize:12, color:"var(--z600)", marginBottom:7 }}>
+                          @{s.user}
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                            <i className="bi bi-eye-fill"
+                              style={{ fontSize:11, color:"var(--cyan)" }} />
+                            <span style={{ fontSize:11, color:"var(--cyan)",
+                              fontWeight:700 }}>{s.viewers}</span>
+                          </div>
+                          <span style={{ background:"rgba(6,182,212,.1)",
+                            border:"1px solid rgba(6,182,212,.22)", borderRadius:6,
+                            padding:"2px 8px", fontSize:10, color:"var(--cyan)" }}>
+                            {s.tribe}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", paddingRight:12 }}>
+                        <button className="btn-cyan"
+                          style={{ borderRadius:10, padding:"7px 14px", fontSize:11 }}>
+                          JOIN
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "servers" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <div style={{ fontSize:10, color:"var(--z600)",
+                  letterSpacing:".1em", marginBottom:6 }}>COMMUNITY SERVER NODES</div>
+                {SERVERS.map(sv => (
+                  <div key={sv.id} className="glass"
+                    style={{ borderRadius:16, padding:16,
+                      display:"flex", alignItems:"center", gap:14 }}>
+                    <div className="g-cyan" style={{ width:46, height:46, borderRadius:14,
+                      flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <i className="bi bi-hdd-network-fill"
+                        style={{ fontSize:20, color:"var(--cyan)" }} />
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>{sv.name}</div>
+                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          <i className="bi bi-people-fill"
+                            style={{ fontSize:11, color:"var(--z600)" }} />
+                          <span style={{ fontSize:12, color:"var(--z600)" }}>{sv.members}</span>
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          <div style={{ width:6, height:6, borderRadius:"50%",
+                            background: sv.active ? "#22c55e" : "var(--z600)" }} />
+                          <span style={{ fontSize:10,
+                            color: sv.active ? "#22c55e" : "var(--z600)" }}>
+                            {sv.active ? "Active" : "Quiet"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="btn-ghost"
+                      style={{ borderRadius:10, padding:"8px 14px", fontSize:11, fontWeight:800 }}>
+                      ENTER
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab === "tournaments" && (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+                justifyContent:"center", height:280, gap:16 }}>
+                <i className="bi bi-trophy" style={{ fontSize:46, color:"#27272a" }} />
+                <span style={{ fontSize:13, color:"var(--z600)", textAlign:"center", lineHeight:1.7 }}>
+                  Tournament brackets launching<br />in the next update.
+                </span>
+                <button className="btn-cyan"
+                  style={{ borderRadius:12, padding:"10px 24px", fontSize:11, letterSpacing:".06em" }}>
+                  GET NOTIFIED
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       PROFILE
+    ================================================================ */
+    function ProfilePage({ user }) {
+      const [tab, setTab] = useState("posts");
+      const STATS = [
+        { label:"FOLLOWERS", val:"84.2K", icon:"bi-people-fill",       bar:.84 },
+        { label:"FOLLOWING", val:"1.2K",  icon:"bi-person-check-fill", bar:.12 },
+        { label:"REACH",     val:"2.4M",  icon:"bi-graph-up-arrow",    bar:.96 },
+      ];
+      const POSTS = Array(9).fill(null).map((_, i) => ({
+        id:i, g:GS[i % GS.length],
+        views:`${(Math.floor(Math.random()*490)+20)}K`,
+      }));
+
+      return (
+        <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
+          <div className="inner-scroll" style={{ height:"100%" }}>
+            <div className="g-cyan" style={{ height:118, position:"relative", flexShrink:0 }}>
+              <div style={{ position:"absolute", inset:0,
+                background:"radial-gradient(ellipse at 30% 60%,rgba(6,182,212,.15),transparent 70%)" }} />
+              <div style={{ position:"absolute", bottom:-32, left:18 }}>
+                <Avatar code="YD" size={66} ring />
+              </div>
+            </div>
+
+            <div style={{ padding:"48px 18px 20px" }}>
+              <div style={{ display:"flex", alignItems:"flex-start",
+                justifyContent:"space-between", marginBottom:12 }}>
+                <div>
+                  <div style={{ fontWeight:800, fontSize:18 }}>@{user.username}</div>
+                  <div style={{ fontSize:12, color:"var(--z600)", marginTop:2 }}>{user.email}</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:7 }}>
+                    <i className="bi bi-patch-check-fill"
+                      style={{ color:"var(--cyan)", fontSize:13 }} />
+                    <span style={{ fontSize:10, color:"var(--cyan)",
+                      fontWeight:700, letterSpacing:".08em" }}>VERIFIED IDENTITY</span>
+                  </div>
+                </div>
+                <button className="btn-ghost"
+                  style={{ borderRadius:12, padding:"8px 16px", fontSize:11, fontWeight:700 }}>
+                  <i className="bi bi-pencil" style={{ marginRight:5 }} />EDIT
+                </button>
+              </div>
+
+              <p style={{ fontSize:13, color:"var(--z400)", lineHeight:1.65, marginBottom:20 }}>
+                Professional creator on SU ZU. The edge is my default setting.
+                Building at the intersection of tech and culture.
+              </p>
+
+              <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:22 }}>
+                {STATS.map(s => (
+                  <div key={s.label}>
+                    <div style={{ display:"flex", alignItems:"center",
+                      justifyContent:"space-between", marginBottom:6 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                        <i className={`bi ${s.icon}`}
+                          style={{ fontSize:13, color:"var(--cyan)" }} />
+                        <span style={{ fontSize:10, color:"var(--z600)",
+                          fontWeight:700, letterSpacing:".08em" }}>{s.label}</span>
+                      </div>
+                      <span style={{ fontWeight:800, fontSize:15 }}>{s.val}</span>
+                    </div>
+                    <div style={{ background:"#27272a", borderRadius:99, height:3 }}>
+                      <div className="stat-bar" style={{ width:`${s.bar*100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display:"flex", borderBottom:"1px solid #27272a", marginBottom:2 }}>
+                {[["posts","bi-grid-3x3-gap"],["saved","bi-bookmark"],["remixed","bi-magic"]].map(([t,ic]) => (
+                  <button key={t} onClick={() => setTab(t)} style={{
+                    flex:1, padding:"10px 0", background:"none", border:"none", cursor:"pointer",
+                    fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:11,
+                    fontWeight:700, letterSpacing:".06em",
+                    color: tab===t ? "var(--cyan)" : "var(--z600)",
+                    borderBottom: tab===t ? "2px solid var(--cyan)" : "2px solid transparent",
+                    display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                    transition:"all .2s",
+                  }}>
+                    <i className={`bi ${ic}`} /> {t.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              <div className="c-grid">
+                {POSTS.map(p => (
+                  <div key={p.id} className={p.g}
+                    style={{ aspectRatio:"9/16", position:"relative",
+                      cursor:"pointer", overflow:"hidden" }}>
+                    <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,.3)" }} />
+                    <div style={{ position:"absolute", bottom:5, left:5,
+                      display:"flex", alignItems:"center", gap:3 }}>
+                      <i className="bi bi-play-fill" style={{ fontSize:9, color:"#fff" }} />
+                      <span style={{ fontSize:9, fontWeight:700, color:"#fff" }}>{p.views}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       NOTIFICATIONS
+    ================================================================ */
+    function NotificationsPage() {
+      const N = [
+        { ic:"bi-heart-fill",       col:"#f43f5e",     u:"aria.waves",  a:"liked your video",            t:"2m"  },
+        { ic:"bi-chat-dots-fill",   col:"var(--cyan)",  u:"xo.cipher",  a:"replied to your thread",      t:"8m"  },
+        { ic:"bi-person-plus-fill", col:"#a855f7",     u:"sol.render",  a:"followed you",                t:"15m" },
+        { ic:"bi-magic",            col:"#f59e0b",     u:"nova.flux",   a:"AI-remixed your content",     t:"1h"  },
+        { ic:"bi-broadcast",        col:"#ef4444",     u:"sync.91",     a:"went live — Gaming",          t:"2h"  },
+        { ic:"bi-trophy-fill",      col:"#eab308",     u:"SU ZU",       a:"Your reach hit 2M this week 🔥", t:"3h" },
+        { ic:"bi-heart-fill",       col:"#f43f5e",     u:"pixel.ruth",  a:"liked your comment",          t:"5h"  },
+        { ic:"bi-people-fill",      col:"var(--cyan)",  u:"SIGMA-7",    a:"You were added to a node",    t:"1d"  },
+      ];
+      return (
+        <div style={{ height:"100%", display:"flex", flexDirection:"column" }}>
+          <div className="glass" style={{ padding:"16px 16px 14px",
+            borderRadius:0, borderLeft:"none", borderRight:"none", borderTop:"none" }}>
+            <div className="brand" style={{ fontSize:11, fontWeight:700,
+              color:"var(--cyan)", letterSpacing:".22em" }}>ACTIVITY</div>
+          </div>
+          <div className="inner-scroll">
+            {N.map((n, i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:14,
+                padding:"14px 16px", borderBottom:"1px solid rgba(39,39,42,.5)",
+                cursor:"pointer" }}>
+                <div style={{ width:40, height:40, borderRadius:"50%", background:"#18181b",
+                  border:"1px solid #27272a", display:"flex", alignItems:"center",
+                  justifyContent:"center", flexShrink:0 }}>
+                  <i className={`bi ${n.ic}`} style={{ fontSize:16, color:n.col }} />
+                </div>
+                <div style={{ flex:1, lineHeight:1.5 }}>
+                  <span style={{ fontWeight:700, fontSize:13 }}>@{n.u} </span>
+                  <span style={{ fontSize:13, color:"var(--z400)" }}>{n.a}</span>
+                </div>
+                <span style={{ fontSize:11, color:"var(--z600)", flexShrink:0 }}>{n.t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       BOTTOM NAV
+    ================================================================ */
+    function BottomNav({ active, setActive, onPlus }) {
+      const items = [
+        { id:"feed",          icon:"bi-house-door",    activeIcon:"bi-house-door-fill", label:"Feed"     },
+        { id:"gaming",        icon:"bi-controller",    activeIcon:"bi-controller",      label:"Hub"      },
+        { id:"__create__",    label:""                                                                   },
+        { id:"notifications", icon:"bi-bell",          activeIcon:"bi-bell-fill",       label:"Activity", badge:8 },
+        { id:"profile",       icon:"bi-person-circle", activeIcon:"bi-person-circle",   label:"Me"       },
+      ];
+
+      return (
+        <div className="bottom-nav">
+          <div className="glass-nav" style={{ padding:"8px 4px 22px",
+            display:"flex", alignItems:"center", justifyContent:"space-around" }}>
+            {items.map(it => {
+              if (it.id === "__create__") {
+                return (
+                  <button key="create" onClick={onPlus}
+                    style={{ background:"none", border:"none", cursor:"pointer",
+                      display:"flex", flexDirection:"column", alignItems:"center" }}>
+                    <div className="create-ring">
+                      <div className="create-inner" style={{ width:44, height:44,
+                        display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <i className="bi bi-plus-lg"
+                          style={{ fontSize:22, color:"var(--cyan)" }} />
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
+              return (
+                <button key={it.id} onClick={() => setActive(it.id)}
+                  style={{ background:"none", border:"none", cursor:"pointer",
+                    display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+                    padding:"4px 10px", borderRadius:12, position:"relative" }}>
+                  <i className={`bi ${active===it.id ? it.activeIcon : it.icon}`}
+                    style={{ fontSize:22,
+                      color: active===it.id ? "var(--cyan)" : "var(--z600)",
+                      transition:"color .2s" }} />
+                  <span style={{ fontSize:9, fontWeight:700, letterSpacing:".05em",
+                    color: active===it.id ? "var(--cyan)" : "var(--z600)",
+                    transition:"color .2s" }}>
+                    {it.label.toUpperCase()}
+                  </span>
+                  {it.badge && <div className="nbadge">{it.badge}</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       APP SHELL
+    ================================================================ */
+    function AppShell({ user }) {
+      const [tab,        setTab]        = useState("feed");
+      const [showCreate, setShowCreate] = useState(false);
+      const [toast,      setToast]      = useState(null);
+
+      return (
+        <div style={{ height:"100%", background:"var(--bg)", position:"relative" }}>
+          <div className="max-app">
+            <div style={{ height:"100%", paddingBottom: tab==="feed" ? 0 : 80 }}>
+              {tab === "feed"          && <NeuralFeed />}
+              {tab === "gaming"        && <GamingHub />}
+              {tab === "notifications" && <NotificationsPage />}
+              {tab === "profile"       && <ProfilePage user={user} />}
+            </div>
+            <BottomNav active={tab} setActive={setTab} onPlus={() => setShowCreate(true)} />
+            {showCreate && <CreateMenu close={() => setShowCreate(false)} />}
+            {toast && <Toast msg={toast} done={() => setToast(null)} />}
+          </div>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       LOADING SCREEN
+    ================================================================ */
+    function LoadingScreen() {
+      return (
+        <div className="bg-mesh" style={{ height:"100%", display:"flex",
+          flexDirection:"column", alignItems:"center", justifyContent:"center", gap:22 }}>
+          <div className="pulse-c" style={{ width:64, height:64, borderRadius:20,
+            background:"rgba(6,182,212,.08)", border:"1px solid rgba(6,182,212,.32)",
+            display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <span className="brand" style={{ fontSize:15, fontWeight:700,
+              color:"var(--cyan)", letterSpacing:".1em" }}>SZ</span>
+          </div>
+          <span className="brand"
+            style={{ fontSize:10, color:"var(--z600)", letterSpacing:".3em" }}>
+            LOADING THE EDGE
+          </span>
+        </div>
+      );
+    }
+
+    /* ================================================================
+       ROOT APP
+    ================================================================ */
+    function App() {
+      const [state, setState] = useState("loading");
+      const [user,  setUser]  = useState(null);
+
+      useEffect(() => {
+        const run = async () => {
+          try {
+            if (!sb) { setState("auth"); return; }
+            const { data } = await sb.auth.getSession();
+            if (data?.session?.user) {
+              const p = await sb.from("profiles")
+                .select("username").eq("id", data.session.user.id).single();
+              setUser({
+                email:    data.session.user.email,
+                username: p.data?.username || data.session.user.email.split("@")[0],
+                id:       data.session.user.id,
+              });
+              setState("app");
+            } else {
+              setState("auth");
+            }
+          } catch { setState("auth"); }
+        };
+        const t = setTimeout(run, 1100);
+        return () => clearTimeout(t);
+      }, []);
+
+      const onAuth = u => { setUser(u); setState("app"); };
+
+      return (
+        <div style={{ width:"100%", height:"100%" }}>
+          {state === "loading" && <LoadingScreen />}
+          {state === "auth"    && <AuthScreen onAuth={onAuth} />}
+          {state === "app" && user && <AppShell user={user} />}
+        </div>
+      );
+    }
+
+    /* ================================================================
+       MOUNT
+    ================================================================ */
+    try {
+      const loader = document.getElementById("sz-loader");
+      if (loader) loader.remove();
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    } catch (err) {
+      document.getElementById("root").innerHTML = `
+        <div style="height:100%;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;background:#09090b;padding:32px;text-align:center;gap:16px;">
+          <div style="font-family:'Syncopate',sans-serif;font-size:28px;font-weight:700;
+            color:#06b6d4;letter-spacing:.3em;">SU ZU</div>
+          <div style="font-size:13px;color:#52525b;max-width:320px;line-height:1.7;">
+            Render error — open DevTools → Console for details.<br/>
+            Make sure you are running on a local server (not file:///).
+          </div>
+          <code style="background:#18181b;border:1px solid #27272a;border-radius:10px;
+            padding:10px 18px;font-size:11px;color:#f87171;max-width:360px;word-break:break-word;">
+            ${err.message}
+          </code>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
