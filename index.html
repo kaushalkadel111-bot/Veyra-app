@@ -1,780 +1,1178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Veyra</title>
-  <meta name="theme-color" content="#000000"/>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
-  <!-- React 18 UMD -->
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-  <!-- Framer Motion 10 UMD — exposes window.Motion -->
-  <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.18.0/dist/framer-motion.js"></script>
+  <!-- Babel (for JSX) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Babel standalone for JSX -->
-  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+  <!-- Framer Motion UMD -->
+  <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body,#root{width:100%;height:100%;overflow:hidden;background:#000}
-    body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif}
-    ::-webkit-scrollbar{display:none}
-    input:focus{outline:none}
-    button{cursor:pointer;border:none;background:transparent}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #050508;
+      --bg2:      #0c0c12;
+      --bg3:      #13131c;
+      --surface:  #1a1a26;
+      --border:   rgba(255,255,255,0.07);
+      --border2:  rgba(255,255,255,0.12);
+      --cyan:     #00e5ff;
+      --cyan2:    #00b8d9;
+      --cyan-dim: rgba(0,229,255,0.12);
+      --cyan-glow:rgba(0,229,255,0.25);
+      --pink:     #ff2d6d;
+      --pink-dim: rgba(255,45,109,0.15);
+      --text:     #f0f0f8;
+      --text2:    #8888aa;
+      --text3:    #555570;
+      --radius:   14px;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+    }
+    html, body, #root {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { display: none; }
+    input, button, textarea { font-family: var(--font-body); outline: none; }
+    button { cursor: pointer; }
 
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-    @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-70px);opacity:0}}
+    /* Glass */
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border2);
+    }
+    .glass-dark {
+      background: rgba(5,5,8,0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid var(--border);
+    }
 
-    .spinner{animation:spin .7s linear infinite}
-    .blink{animation:blink 1s ease-in-out infinite}
-    .float-heart{animation:floatUp 1s ease-out forwards;pointer-events:none;position:absolute;font-size:32px;z-index:99}
+    /* Cyan glow utility */
+    .glow-cyan { box-shadow: 0 0 24px var(--cyan-glow), 0 0 60px rgba(0,229,255,0.1); }
+    .glow-pink  { box-shadow: 0 0 24px rgba(255,45,109,0.3); }
+
+    /* Gradient text */
+    .grad-text {
+      background: linear-gradient(135deg, var(--cyan), #7b61ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Noise overlay */
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      opacity:0.4;
+    }
+
+    /* Scan line effect */
+    body::after {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    }
+
+    .app-shell {
+      position: relative; z-index:1;
+      width:100%; height:100%;
+      display:flex; flex-direction:column;
+      overflow: hidden;
+    }
+
+    /* Feed scroll */
+    .feed-scroll {
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      height: 100%;
+    }
+    .feed-item {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    /* Nav */
+    .bottom-nav {
+      display:flex; justify-content:space-around; align-items:center;
+      padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      background:none; border:none;
+      color: var(--text3);
+      font-size:10px; font-weight:500; letter-spacing:0.5px;
+      padding: 6px 16px;
+      transition: color 0.2s;
+    }
+    .nav-btn.active { color: var(--cyan); }
+    .nav-btn-create {
+      width:52px; height:52px; border-radius:16px; border:none;
+      background: linear-gradient(135deg, var(--cyan), #7b61ff);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 0 20px var(--cyan-glow);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .nav-btn-create:active { transform: scale(0.93); }
+
+    /* Auth */
+    .auth-bg {
+      position:fixed; inset:0; z-index:0;
+      background: radial-gradient(ellipse at 30% 20%, rgba(0,229,255,0.08) 0%, transparent 55%),
+                  radial-gradient(ellipse at 80% 80%, rgba(123,97,255,0.08) 0%, transparent 55%),
+                  var(--bg);
+    }
+    .auth-card {
+      width:100%; max-width:420px; padding:40px 36px;
+      border-radius:24px;
+    }
+    .input-field {
+      width:100%; padding:14px 16px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius:10px;
+      color: var(--text); font-size:15px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px var(--cyan-dim);
+    }
+    .btn-primary {
+      width:100%; padding:15px;
+      background: linear-gradient(135deg, var(--cyan), #7b61ff);
+      border:none; border-radius:12px;
+      color:#050508; font-size:15px; font-weight:700; letter-spacing:0.5px;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:active { transform:scale(0.98); opacity:0.9; }
+    .btn-ghost {
+      background:none; border:none;
+      color: var(--text2); font-size:14px;
+      transition: color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--cyan); }
+
+    /* Feed card */
+    .video-card {
+      position:relative; width:100%;
+      background: var(--bg2);
+      overflow:hidden;
+    }
+    .video-overlay {
+      position:absolute; inset:0;
+      background: linear-gradient(to top, rgba(5,5,8,0.9) 0%, rgba(5,5,8,0.2) 40%, transparent 70%);
+      pointer-events:none;
+    }
+    .video-actions {
+      position:absolute; right:12px; bottom:80px;
+      display:flex; flex-direction:column; gap:20px; align-items:center;
+    }
+    .action-btn {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      background:none; border:none; color:#fff;
+      font-size:12px; font-weight:500;
+    }
+    .action-icon {
+      width:44px; height:44px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display:flex; gap:0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      flex:1; padding:14px 8px;
+      background:none; border:none;
+      color: var(--text3); font-size:13px; font-weight:600; letter-spacing:0.3px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+    /* Profile */
+    .stat-box {
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+      padding:16px 8px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-box:last-child { border-right:none; }
+
+    /* Gaming grid */
+    .game-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px; }
+    .game-card { border-radius:12px; overflow:hidden; position:relative; aspect-ratio:16/10; }
+
+    /* Live */
+    .live-badge {
+      background: var(--pink); color:#fff;
+      font-size:10px; font-weight:700; letter-spacing:1px;
+      padding:3px 8px; border-radius:4px;
+    }
+
+    /* Camera UI */
+    .camera-screen {
+      position:fixed; inset:0; z-index:200;
+      background:#000;
+      display:flex; flex-direction:column;
+    }
+    .duration-pill {
+      padding:8px 16px; border-radius:50px; border:none;
+      background:rgba(255,255,255,0.1); color:#fff;
+      font-size:13px; font-weight:600;
+      transition: background 0.2s;
+    }
+    .duration-pill.active {
+      background: var(--cyan); color:#050508;
+    }
+    .record-btn-outer {
+      width:80px; height:80px; border-radius:50%;
+      border:4px solid #fff;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
+    }
+    .record-btn-inner {
+      width:60px; height:60px; border-radius:50%;
+      background:#fff;
+      transition: border-radius 0.3s, transform 0.3s;
+    }
+    .record-btn-inner.recording {
+      border-radius:10px;
+      transform:scale(0.6);
+      background: var(--pink);
+    }
   </style>
 </head>
 <body>
-<div id="root"></div>
+  <div id="root"></div>
 
-<script>
-// Safety check — run after all scripts load
-window.addEventListener('load', function() {
-  if (!window.React || !window.ReactDOM) {
-    document.getElementById('root').innerHTML =
-      '<p style="color:red;padding:20px">React failed to load. Check your internet connection.</p>';
-  }
-});
-</script>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+    const { motion, AnimatePresence } = FramerMotion;
 
-<script type="text/babel">
-// ─── Grab globals ─────────────────────────────────────────────────────────────
-const { useState, useRef, useEffect, useCallback } = React;
+    // ── Icon helper ─────────────────────────────────────────────────────────
+    function Icon({ name, size = 20, color = "currentColor", strokeWidth = 1.8 }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (ref.current && lucide && lucide[name]) {
+          ref.current.innerHTML = "";
+          const el = lucide.createElement(lucide[name]);
+          el.setAttribute("width", size);
+          el.setAttribute("height", size);
+          el.setAttribute("stroke", color);
+          el.setAttribute("stroke-width", strokeWidth);
+          el.setAttribute("fill", "none");
+          el.setAttribute("stroke-linecap", "round");
+          el.setAttribute("stroke-linejoin", "round");
+          ref.current.appendChild(el);
+        }
+      }, [name, size, color, strokeWidth]);
+      return <span ref={ref} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:0}} />;
+    }
 
-// Framer Motion 10 UMD attaches as window.Motion (not window.FramerMotion)
-const { motion, AnimatePresence } = window.Motion || window.FramerMotion || {};
+    // ── Spinner ──────────────────────────────────────────────────────────────
+    function Spinner({ size = 24, color = "var(--cyan)" }) {
+      return (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+          style={{ width: size, height: size, borderRadius: "50%", border: `2px solid ${color}22`, borderTopColor: color }}
+        />
+      );
+    }
 
-// Fallback: if Framer Motion didn't load, create no-op wrappers so the app
-// still renders (just without animations).
-const Mtn = motion || new Proxy({}, {
-  get: (_, tag) => ({ children, style, onClick, ...rest }) =>
-    React.createElement(tag || 'div', { style, onClick }, children)
-});
-const AP = AnimatePresence || (({ children }) => children);
+    // ── Gradient backgrounds for mock video cards ────────────────────────────
+    const GRADIENTS = [
+      "linear-gradient(160deg,#0d1b2a,#1b2838,#162032)",
+      "linear-gradient(160deg,#1a0a2e,#2d1b5e,#0f0a1e)",
+      "linear-gradient(160deg,#0a1628,#0d2640,#091220)",
+      "linear-gradient(160deg,#1e0a14,#3d1428,#100508)",
+      "linear-gradient(160deg,#071c1c,#0d3333,#040e0e)",
+      "linear-gradient(160deg,#1c1200,#3d2a00,#100900)",
+    ];
 
-// ─── DATA ─────────────────────────────────────────────────────────────────────
-const VIBES = {
-  hype: {
-    label:'Hype', icon:'🔥',
-    accent:'#FF2D55', glow:'rgba(255,45,85,.4)', dim:'rgba(255,45,85,.12)',
-    grad:'linear-gradient(135deg,#FF2D55,#FF6B35)',
-  },
-  chill: {
-    label:'Chill', icon:'🌊',
-    accent:'#0A84FF', glow:'rgba(10,132,255,.4)', dim:'rgba(10,132,255,.12)',
-    grad:'linear-gradient(135deg,#0A84FF,#32ADE6)',
-  },
-  learn: {
-    label:'Learn', icon:'⚡',
-    accent:'#30D158', glow:'rgba(48,209,88,.4)', dim:'rgba(48,209,88,.12)',
-    grad:'linear-gradient(135deg,#30D158,#34C759)',
-  },
-};
+    const MOCK_USERS = [
+      { handle:"@solara_streams",name:"Solara", followers:"2.4M", following:"340", likes:"18.2M", bio:"Professional streamer · FPS specialist · Ranked Top 0.1%" },
+      { handle:"@nxcode",        name:"NxCode", followers:"890K", following:"121", likes:"6.1M",  bio:"Dev & Creator · Building in public · TypeScript nerd" },
+      { handle:"@void_drift",    name:"Void",   followers:"1.1M", following:"88",  likes:"9.4M",  bio:"Chill vibes & city nightscapes · LA based" },
+    ];
 
-// Supabase swap: replace these arrays with your DB query results
-const VIDEOS = {
-  hype:[
-    { id:'h1', url:'https://videos.pexels.com/video-files/4812209/4812209-hd_1080_1920_25fps.mp4',
-      creator:'@urban_rush', av:'U', desc:'When the beat drops and the city becomes the dancefloor. No rules after midnight.',
-      likes:'1.4M', comments:'88K', shares:'340K', tags:['#UrbanEnergy','#HypeVibes'] },
-    { id:'h2', url:'https://videos.pexels.com/video-files/3209828/3209828-hd_1080_1920_25fps.mp4',
-      creator:'@motionsport', av:'M', desc:'Full send. No hesitation. This is what peak performance looks like.',
-      likes:'920K', comments:'51K', shares:'210K', tags:['#FullSend','#Athletics'] },
-    { id:'h3', url:'https://videos.pexels.com/video-files/2795405/2795405-hd_1080_1920_24fps.mp4',
-      creator:'@fire_arts', av:'F', desc:'Fire dancing meets slow motion. Every frame is a painting.',
-      likes:'895K', comments:'67K', shares:'400K', tags:['#FireArt','#SlowMo'] },
-  ],
-  chill:[
-    { id:'c1', url:'https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4',
-      creator:'@ocean_dreams', av:'O', desc:'Hypnotic underwater drift. Zero gravity, infinite calm.',
-      likes:'419K', comments:'31K', shares:'220K', tags:['#Underwater','#ZenMode'] },
-    { id:'c2', url:'https://videos.pexels.com/video-files/1448735/1448735-uhd_2560_1440_25fps.mp4',
-      creator:'@sky_chill', av:'S', desc:'Clouds over mountain peaks at dusk. Nature\'s slow cinema.',
-      likes:'672K', comments:'44K', shares:'310K', tags:['#CloudWatch','#SlowTV'] },
-    { id:'c3', url:'https://videos.pexels.com/video-files/856485/856485-hd_1920_1080_25fps.mp4',
-      creator:'@rain_loop', av:'R', desc:'Raindrops on glass. The ultimate lo-fi visual. Breathe.',
-      likes:'523K', comments:'28K', shares:'189K', tags:['#Lofi','#Rainfall'] },
-  ],
-  learn:[
-    { id:'l1', url:'https://videos.pexels.com/video-files/3044116/3044116-uhd_2560_1440_25fps.mp4',
-      creator:'@astro_learn', av:'A', desc:'How black holes bend light — Einstein predicted it in 1915, we proved it in 2019.',
-      likes:'1.2M', comments:'99K', shares:'550K', tags:['#BlackHoles','#Space'] },
-    { id:'l2', url:'https://videos.pexels.com/video-files/2278095/2278095-hd_1920_1080_30fps.mp4',
-      creator:'@tech_decoded', av:'T', desc:'40 billion transistors on a fingernail — how microchips are made.',
-      likes:'2.1M', comments:'144K', shares:'890K', tags:['#Microchips','#TechScience'] },
-    { id:'l3', url:'https://videos.pexels.com/video-files/4478119/4478119-hd_1080_1920_25fps.mp4',
-      creator:'@bio_visuals', av:'B', desc:'A single human cell dividing in real time. This is how we all began.',
-      likes:'3.4M', comments:'201K', shares:'1.2M', tags:['#Biology','#CellDivision'] },
-  ],
-};
+    const MOCK_FEED = [
+      { id:1, user:"@solara_streams", title:"Ranked to Radiant in 48hrs — full grind VOD", views:"1.2M", grad: GRADIENTS[0], dur:"18:42", category:"Gaming" },
+      { id:2, user:"@void_drift",     title:"Midnight Tokyo drive — lo-fi session",         views:"890K", grad: GRADIENTS[4], dur:"8:14",  category:"Chill" },
+      { id:3, user:"@nxcode",         title:"I built a real-time whiteboard in 2 hours",    views:"640K", grad: GRADIENTS[1], dur:"2:07:33",category:"Dev" },
+      { id:4, user:"@solara_streams", title:"Reacting to pro player VODs — learning arc",   views:"430K", grad: GRADIENTS[3], dur:"44:12", category:"Gaming" },
+    ];
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-const glass = {
-  background:'rgba(15,15,15,.6)',
-  backdropFilter:'blur(18px)', WebkitBackdropFilter:'blur(18px)',
-  border:'1px solid rgba(255,255,255,.11)',
-};
+    const MOCK_GAMES = [
+      { id:1, title:"Apex Legends",      viewers:"182K", grad:GRADIENTS[0], streamer:"Solara" },
+      { id:2, title:"Valorant",          viewers:"134K", grad:GRADIENTS[1], streamer:"NxCode" },
+      { id:3, title:"Elden Ring",        viewers:"98K",  grad:GRADIENTS[3], streamer:"VoidDrift" },
+      { id:4, title:"CS2",               viewers:"76K",  grad:GRADIENTS[2], streamer:"Krypt0" },
+      { id:5, title:"League of Legends", viewers:"211K", grad:GRADIENTS[5], streamer:"Lumina" },
+      { id:6, title:"Minecraft",         viewers:"55K",  grad:GRADIENTS[4], streamer:"PixelKing" },
+    ];
 
-// ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
-function AuthScreen({ onAuth }) {
-  const [tab, setTab]   = useState('in');
-  const [email, setEmail]   = useState('');
-  const [pw, setPw]     = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [err, setErr]   = useState('');
-  const [showPw, setShowPw] = useState(false);
+    const MOCK_LIVE = [
+      { id:1, user:"@solara_streams", title:"RANKED GRIND — Road to Top 500",       viewers:"14.2K", grad:GRADIENTS[0], duration:"3:12:44" },
+      { id:2, user:"@lumina",         title:"midnight chill stream ♡ no mic",        viewers:"3.8K",  grad:GRADIENTS[4], duration:"0:44:01" },
+      { id:3, user:"@krypt0.exe",     title:"CS2 Pro Scrims — Behind the Scenes",   viewers:"9.1K",  grad:GRADIENTS[2], duration:"1:28:15" },
+    ];
 
-  const submit = (e) => {
-    e.preventDefault();
-    setErr('');
-    if (!email || !pw) { setErr('Please fill all fields.'); return; }
-    if (tab === 'up' && !name) { setErr('Enter your display name.'); return; }
-    setLoading(true);
-    // ── SUPABASE SWAP ──────────────────────────────────────────────────
-    // const { data, error } = tab === 'up'
-    //   ? await supabase.auth.signUp({ email, password: pw, options:{ data:{ full_name: name }}})
-    //   : await supabase.auth.signInWithPassword({ email, password: pw });
-    // if (error) { setErr(error.message); setLoading(false); return; }
-    // onAuth(data.user);
-    // ── END SWAP ───────────────────────────────────────────────────────
-    setTimeout(() => { setLoading(false); onAuth({ email, name: name || email.split('@')[0] }); }, 800);
-  };
+    // ════════════════════════════════════════════════════════════════════════
+    // AUTH SCREEN
+    // ════════════════════════════════════════════════════════════════════════
+    function AuthScreen({ onAuth }) {
+      const [mode, setMode]       = useState("login"); // login | signup
+      const [email, setEmail]     = useState("");
+      const [password, setPassword] = useState("");
+      const [username, setUsername] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [error, setError]     = useState("");
 
-  const inp = {
-    width:'100%', padding:'14px 16px', borderRadius:14,
-    background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.11)',
-    color:'#fff', fontSize:15,
-  };
+      const handleSubmit = async () => {
+        setError("");
+        if (!email || !password) { setError("Please fill all fields."); return; }
+        if (mode === "signup" && !username) { setError("Username required."); return; }
+        setLoading(true);
+        await new Promise(r => setTimeout(r, 1000));
+        setLoading(false);
+        onAuth({ email, username: username || email.split("@")[0], handle: "@" + (username || email.split("@")[0]).toLowerCase().replace(/\s/g,"_") });
+      };
 
-  return (
-    <div style={{ width:'100%', height:'100%', background:'#000', display:'flex',
-      alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden' }}>
-      {/* bg blobs */}
-      <div style={{ position:'absolute', top:-120, left:-80, width:300, height:300,
-        borderRadius:'50%', background:'rgba(255,45,85,.13)', filter:'blur(70px)', pointerEvents:'none' }}/>
-      <div style={{ position:'absolute', bottom:-80, right:-60, width:260, height:260,
-        borderRadius:'50%', background:'rgba(10,132,255,.10)', filter:'blur(70px)', pointerEvents:'none' }}/>
+      return (
+        <div style={{ position:"fixed", inset:0, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div className="auth-bg" />
 
-      <div style={{ width:'100%', maxWidth:340, padding:'0 28px' }}>
-        {/* Logo */}
-        <div style={{ textAlign:'center', marginBottom:32 }}>
-          <div style={{ width:64, height:64, borderRadius:20, margin:'0 auto 12px',
-            background:'linear-gradient(135deg,#FF2D55,#FF6B35)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:28, fontWeight:900, color:'#fff', boxShadow:'0 0 32px rgba(255,45,85,.4)',
-            fontFamily:'Georgia,serif' }}>V</div>
-          <h1 style={{ fontSize:30, fontWeight:900, letterSpacing:-1,
-            background:'linear-gradient(135deg,#FF2D55,#FF6B35)',
-            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-            fontFamily:'Georgia,serif' }}>Veyra</h1>
-          <p style={{ color:'rgba(255,255,255,.35)', fontSize:13, marginTop:4 }}>
-            Entertainment without limits
-          </p>
-        </div>
+          {/* Cyan orb */}
+          <div style={{ position:"absolute", top:"-10%", left:"-5%", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%)", pointerEvents:"none" }} />
+          <div style={{ position:"absolute", bottom:"-5%", right:"-5%", width:350, height:350, borderRadius:"50%", background:"radial-gradient(circle, rgba(123,97,255,0.07) 0%, transparent 70%)", pointerEvents:"none" }} />
 
-        {/* Tab */}
-        <div style={{ display:'flex', background:'rgba(255,255,255,.06)', borderRadius:14,
-          padding:4, marginBottom:22, gap:4 }}>
-          {[['in','Sign In'],['up','Sign Up']].map(([k,l]) => (
-            <button key={k} onClick={() => { setTab(k); setErr(''); }}
-              style={{ flex:1, padding:10, borderRadius:10, fontWeight:700, fontSize:14,
-                background: tab===k ? 'rgba(255,255,255,.12)' : 'transparent',
-                color: tab===k ? '#fff' : 'rgba(255,255,255,.38)',
-                boxShadow: tab===k ? '0 2px 10px rgba(0,0,0,.3)' : 'none',
-                transition:'all .2s' }}>{l}</button>
-          ))}
-        </div>
+          <motion.div
+            className="glass-dark auth-card"
+            initial={{ opacity:0, y:30, scale:0.97 }}
+            animate={{ opacity:1, y:0, scale:1 }}
+            transition={{ duration:0.5, ease:[0.22,1,0.36,1] }}
+            style={{ position:"relative", zIndex:1 }}
+          >
+            {/* Logo */}
+            <div style={{ textAlign:"center", marginBottom:32 }}>
+              <div style={{ fontFamily:"var(--font-display)", fontSize:44, letterSpacing:4, background:"linear-gradient(135deg,var(--cyan),#7b61ff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1 }}>
+                VEYRA
+              </div>
+              <div style={{ color:"var(--text3)", fontSize:12, letterSpacing:2, marginTop:6, textTransform:"uppercase" }}>
+                Stream · Create · Connect
+              </div>
+            </div>
 
-        <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          {tab === 'up' && (
-            <input type="text" placeholder="Display name" value={name}
-              onChange={e => setName(e.target.value)} style={inp}/>
-          )}
-          <input type="email" placeholder="Email address" value={email}
-            onChange={e => setEmail(e.target.value)} style={inp}/>
-          <div style={{ position:'relative' }}>
-            <input type={showPw?'text':'password'} placeholder="Password" value={pw}
-              onChange={e => setPw(e.target.value)}
-              style={{ ...inp, paddingRight:48 }}/>
-            <button type="button" onClick={() => setShowPw(p=>!p)}
-              style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)',
-                color:'rgba(255,255,255,.4)', fontSize:18 }}>{showPw ? '🙈' : '👁️'}</button>
-          </div>
+            {/* Mode toggle */}
+            <div style={{ display:"flex", background:"var(--bg3)", borderRadius:10, padding:4, marginBottom:24 }}>
+              {["login","signup"].map(m => (
+                <button key={m} onClick={() => { setMode(m); setError(""); }}
+                  style={{ flex:1, padding:"9px 0", borderRadius:8, border:"none", fontSize:13, fontWeight:600, letterSpacing:0.5,
+                    background: mode===m ? "var(--surface)" : "none",
+                    color: mode===m ? "var(--text)" : "var(--text3)",
+                    transition:"all 0.2s" }}>
+                  {m === "login" ? "Sign In" : "Create Account"}
+                </button>
+              ))}
+            </div>
 
-          {err && <p style={{ color:'#FF2D55', fontSize:12, textAlign:'center', fontWeight:600 }}>{err}</p>}
+            {/* Fields */}
+            <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:20 }}>
+              {mode === "signup" && (
+                <input className="input-field" placeholder="Username" value={username}
+                  onChange={e => setUsername(e.target.value)} />
+              )}
+              <input className="input-field" type="email" placeholder="Email address" value={email}
+                onChange={e => setEmail(e.target.value)} />
+              <input className="input-field" type="password" placeholder="Password" value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            </div>
 
-          <button type="submit"
-            style={{ marginTop:4, padding:15, borderRadius:14, fontWeight:800, fontSize:16,
-              color:'#fff', letterSpacing:.3,
-              background: loading ? 'rgba(255,45,85,.4)' : 'linear-gradient(135deg,#FF2D55,#FF6B35)',
-              boxShadow: loading ? 'none' : '0 0 26px rgba(255,45,85,.35)',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all .3s' }}>
-            {loading
-              ? <><span className="spinner"
-                  style={{ width:18, height:18, border:'2px solid rgba(255,255,255,.3)',
-                    borderTopColor:'#fff', borderRadius:'50%', display:'inline-block' }}/>
-                  Signing in…</>
-              : tab==='in' ? 'Sign In to Veyra →' : 'Create Account →'}
-          </button>
-        </form>
+            {error && <p style={{ color:"#ff5f5f", fontSize:13, marginBottom:14, textAlign:"center" }}>{error}</p>}
 
-        <button onClick={() => onAuth({ email:'guest@veyra.app', name:'Guest' })}
-          style={{ display:'block', margin:'18px auto 0', color:'rgba(255,255,255,.25)', fontSize:12, fontWeight:600 }}>
-          Skip for now
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── CAMERA SCREEN ────────────────────────────────────────────────────────────
-function CameraScreen({ onClose, theme }) {
-  const videoRef  = useRef(null);
-  const mediaRef  = useRef(null);
-  const streamRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef  = useRef(null);
-
-  const [ready, setReady]       = useState(false);
-  const [recording, setRec]     = useState(false);
-  const [elapsed, setElapsed]   = useState(0);
-  const [facing, setFacing]     = useState('user');
-  const [blobUrl, setBlobUrl]   = useState(null);
-  const [denied, setDenied]     = useState(false);
-
-  const MAX = 60;
-
-  const startCam = useCallback(async (f) => {
-    try {
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: f, width:{ ideal:1280 }, height:{ ideal:720 } }, audio: true
-      });
-      streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play().catch(()=>{}); }
-      setReady(true);
-    } catch { setDenied(true); }
-  }, []);
-
-  useEffect(() => { startCam(facing); return () => {
-    if (streamRef.current) streamRef.current.getTracks().forEach(t=>t.stop());
-    if (timerRef.current) clearInterval(timerRef.current);
-  }; }, []);
-
-  const startRec = () => {
-    if (!streamRef.current) return;
-    chunksRef.current = [];
-    setBlobUrl(null);
-    const mr = new MediaRecorder(streamRef.current, { mimeType:'video/webm;codecs=vp8,opus' });
-    mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-    mr.onstop = () => setBlobUrl(URL.createObjectURL(new Blob(chunksRef.current, { type:'video/webm' })));
-    mr.start(100);
-    mediaRef.current = mr;
-    setRec(true);
-    setElapsed(0);
-    timerRef.current = setInterval(() => setElapsed(s => {
-      if (s+1 >= MAX) { stopRec(); return MAX; }
-      return s+1;
-    }), 1000);
-  };
-
-  const stopRec = () => {
-    if (mediaRef.current && mediaRef.current.state !== 'inactive') mediaRef.current.stop();
-    clearInterval(timerRef.current);
-    setRec(false);
-  };
-
-  const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-  const pct = elapsed / MAX * 100;
-  const C = 2 * Math.PI * 40;
-
-  return (
-    <div style={{ position:'absolute', inset:0, background:'#000', zIndex:200,
-      display:'flex', flexDirection:'column' }}>
-
-      {/* Review overlay */}
-      {blobUrl && (
-        <div style={{ position:'absolute', inset:0, zIndex:300, background:'#000',
-          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20 }}>
-          <video src={blobUrl} controls autoPlay loop playsInline
-            style={{ width:'100%', maxHeight:'65%', objectFit:'contain' }}/>
-          <div style={{ display:'flex', gap:14 }}>
-            <button onClick={() => setBlobUrl(null)}
-              style={{ padding:'12px 26px', borderRadius:28, ...glass, color:'#fff', fontWeight:700 }}>
-              Retake
+            <button className="btn-primary" onClick={handleSubmit} disabled={loading}
+              style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+              {loading ? <Spinner size={18} color="#050508" /> : (mode === "login" ? "Sign In" : "Create Account")}
             </button>
-            <a href={blobUrl} download="veyra-clip.webm"
-              style={{ padding:'12px 26px', borderRadius:28,
-                background:theme.grad, color:'#fff', fontWeight:700, textDecoration:'none',
-                boxShadow:`0 0 20px ${theme.glow}` }}>
-              Save Clip ↓
-            </a>
-          </div>
-          <button onClick={onClose} style={{ color:'rgba(255,255,255,.35)', fontSize:13 }}>
-            Back to Feed
-          </button>
-        </div>
-      )}
 
-      {/* Camera view */}
-      <div style={{ flex:1, position:'relative', overflow:'hidden' }}>
-        {denied ? (
-          <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column',
-            alignItems:'center', justifyContent:'center', gap:14, padding:32 }}>
-            <span style={{ fontSize:48 }}>📵</span>
-            <p style={{ color:'#fff', fontWeight:700, fontSize:17, textAlign:'center' }}>Camera access denied</p>
-            <p style={{ color:'rgba(255,255,255,.4)', fontSize:13, textAlign:'center' }}>
-              Allow camera in your browser settings.
+            <div style={{ textAlign:"center", marginTop:20 }}>
+              <button className="btn-ghost" onClick={() => {
+                onAuth({ email:"demo@veyra.app", username:"Demo User", handle:"@demo_user" });
+              }}>
+                Continue as Guest
+              </button>
+            </div>
+
+            <p style={{ color:"var(--text3)", fontSize:11, textAlign:"center", marginTop:24, lineHeight:1.5 }}>
+              By continuing you agree to Veyra's Terms of Service & Privacy Policy
             </p>
-            <button onClick={onClose} style={{ padding:'11px 28px', borderRadius:24,
-              background:theme.grad, color:'#fff', fontWeight:700 }}>Back to Feed</button>
-          </div>
-        ) : (
-          <>
-            <video ref={videoRef} autoPlay muted playsInline
-              style={{ width:'100%', height:'100%', objectFit:'cover',
-                transform: facing==='user' ? 'scaleX(-1)' : 'none' }}/>
-            <div style={{ position:'absolute', inset:0, pointerEvents:'none',
-              background:'linear-gradient(to bottom,rgba(0,0,0,.5) 0%,transparent 30%,transparent 70%,rgba(0,0,0,.4) 100%)' }}/>
-          </>
-        )}
+          </motion.div>
+        </div>
+      );
+    }
 
-        {/* Top controls */}
-        <div style={{ position:'absolute', top:0, left:0, right:0, padding:'16px',
-          display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <button onClick={onClose}
-            style={{ width:38, height:38, borderRadius:'50%', ...glass,
-              color:'#fff', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-          <div style={{ display:'flex', alignItems:'center', gap:7, ...glass,
-            borderRadius:20, padding:'5px 12px',
-            borderColor: recording ? theme.accent : 'rgba(255,255,255,.11)' }}>
-            {recording && <div className="blink" style={{ width:8, height:8, borderRadius:'50%',
-              background:'#FF2D55', boxShadow:'0 0 8px #FF2D55' }}/>}
-            <span style={{ color:'#fff', fontWeight:800, fontSize:13 }}>
-              {fmt(elapsed)} / {fmt(MAX)}
+    // ════════════════════════════════════════════════════════════════════════
+    // HOME FEED
+    // ════════════════════════════════════════════════════════════════════════
+    function FeedCard({ item, height }) {
+      const [liked, setLiked] = useState(false);
+      const [likes, setLikes] = useState(Math.floor(Math.random()*90+10)*1000);
+      const [saved, setSaved] = useState(false);
+
+      return (
+        <div className="video-card feed-item" style={{ height, background:item.grad }}>
+          {/* Simulated video frame */}
+          <div style={{ position:"absolute", inset:0, background:item.grad }}>
+            <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.01) 0px,rgba(255,255,255,0.01) 1px,transparent 1px,transparent 20px)", backgroundSize:"20px 20px" }} />
+          </div>
+          <div className="video-overlay" />
+
+          {/* Category badge */}
+          <div style={{ position:"absolute", top:16, left:16, display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ background:"rgba(0,229,255,0.15)", border:"1px solid var(--cyan-dim)", color:"var(--cyan)", fontSize:10, fontWeight:700, letterSpacing:1.5, padding:"4px 10px", borderRadius:6 }}>
+              {item.category.toUpperCase()}
+            </span>
+            <span style={{ background:"rgba(0,0,0,0.5)", color:"var(--text2)", fontSize:11, padding:"4px 10px", borderRadius:6, fontFamily:"var(--font-mono)" }}>
+              {item.dur}
             </span>
           </div>
-          <button onClick={() => { const f = facing==='user'?'environment':'user'; setFacing(f); startCam(f); }}
-            style={{ width:38, height:38, borderRadius:'50%', ...glass,
-              color:'#fff', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>🔄</button>
-        </div>
-      </div>
 
-      {/* Progress */}
-      <div style={{ height:3, background:'rgba(255,255,255,.08)' }}>
-        <div style={{ height:'100%', width:`${pct}%`, background:theme.grad, transition:'width .5s linear' }}/>
-      </div>
-
-      {/* Record controls */}
-      <div style={{ padding:'22px 24px 40px', display:'flex', alignItems:'center',
-        justifyContent:'space-around', background:'#080808' }}>
-        <button style={{ width:48, height:48, borderRadius:'50%', ...glass,
-          fontSize:20, display:'flex', alignItems:'center', justifyContent:'center' }}>📷</button>
-
-        {/* Record ring button */}
-        <button onClick={recording ? stopRec : startRec}
-          style={{ position:'relative', width:82, height:82, background:'transparent',
-            display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <svg width="82" height="82" style={{ position:'absolute', transform:'rotate(-90deg)' }}>
-            <circle cx="41" cy="41" r="40" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="3"/>
-            <circle cx="41" cy="41" r="40" fill="none" stroke={theme.accent} strokeWidth="3"
-              strokeDasharray={C} strokeDashoffset={C - C * pct/100} strokeLinecap="round"
-              style={{ transition:'stroke-dashoffset .5s linear' }}/>
-          </svg>
-          <div style={{
-            width: recording ? 28 : 58, height: recording ? 28 : 58,
-            background: recording ? theme.accent : '#fff',
-            borderRadius: recording ? 6 : '50%',
-            boxShadow: recording ? `0 0 20px ${theme.glow}` : '0 0 14px rgba(255,255,255,.4)',
-            transition:'all .2s',
-          }}/>
-        </button>
-
-        <button style={{ width:48, height:48, borderRadius:'50%', ...glass,
-          fontSize:20, display:'flex', alignItems:'center', justifyContent:'center' }}>✨</button>
-      </div>
-    </div>
-  );
-}
-
-// ─── GLASS ACTION BUTTON ──────────────────────────────────────────────────────
-function GlassBtn({ icon, label, accent, glow, active, onClick }) {
-  const [pop, setPop] = useState(false);
-  const fire = () => { setPop(true); setTimeout(()=>setPop(false),350); onClick&&onClick(); };
-  return (
-    <button onClick={fire}
-      style={{
-        display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-        background: active ? glow : 'rgba(15,15,15,.58)',
-        border:`1px solid ${active ? accent : 'rgba(255,255,255,.11)'}`,
-        borderRadius:18,
-        backdropFilter:'blur(18px)', WebkitBackdropFilter:'blur(18px)',
-        padding:'12px 10px', minWidth:52, overflow:'hidden', position:'relative',
-        boxShadow: active ? `0 0 20px ${glow}` : '0 4px 20px rgba(0,0,0,.4)',
-        transform: pop ? 'scale(1.3)' : 'scale(1)',
-        transition:'transform .15s, box-shadow .3s',
-      }}>
-      <span style={{ fontSize:23, lineHeight:1,
-        filter: active ? `drop-shadow(0 0 8px ${accent})` : 'none' }}>{icon}</span>
-      <span style={{ fontSize:10, fontWeight:700, letterSpacing:.3,
-        color: active ? '#fff' : 'rgba(255,255,255,.6)' }}>{label}</span>
-    </button>
-  );
-}
-
-// ─── PROGRESS BAR ─────────────────────────────────────────────────────────────
-function VideoProgress({ videoRef, accent }) {
-  const [pct, setPct] = useState(0);
-  useEffect(() => {
-    const v = videoRef.current; if (!v) return;
-    const fn = () => { if (v.duration) setPct(v.currentTime/v.duration*100); };
-    v.addEventListener('timeupdate', fn);
-    return () => v.removeEventListener('timeupdate', fn);
-  }, []);
-  return (
-    <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2,
-      background:'rgba(255,255,255,.08)', zIndex:15 }}>
-      <div style={{ height:'100%', width:`${pct}%`, transition:'width .25s linear',
-        background:accent, borderRadius:2 }}/>
-    </div>
-  );
-}
-
-// ─── VIDEO CARD ───────────────────────────────────────────────────────────────
-function VideoCard({ data, isActive, theme }) {
-  const vRef  = useRef(null);
-  const [liked, setLiked]   = useState(false);
-  const [muted, setMuted]   = useState(true);
-  const [desc, setDesc]     = useState(false);
-  const [hearts, setHearts] = useState([]);
-
-  useEffect(() => {
-    const v = vRef.current; if (!v) return;
-    if (isActive) { v.currentTime=0; v.play().catch(()=>{}); }
-    else { v.pause(); v.currentTime=0; }
-  }, [isActive]);
-
-  const doubleTap = () => {
-    if (!liked) setLiked(true);
-    const id = Date.now();
-    setHearts(h => [...h, { id, x: 20+Math.random()*50 }]);
-    setTimeout(() => setHearts(h => h.filter(x=>x.id!==id)), 1100);
-  };
-
-  return (
-    <div style={{ position:'relative', width:'100%', height:'100%',
-      background:'#000', overflow:'hidden' }} onDoubleClick={doubleTap}>
-      <video ref={vRef} src={data.url} loop muted={muted} playsInline preload="auto"
-        style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
-
-      {/* Vignette */}
-      <div style={{ position:'absolute', inset:0, pointerEvents:'none',
-        background:'linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.1) 35%,transparent 55%,rgba(0,0,0,.25) 100%)' }}/>
-
-      {/* Top accent bar */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:theme.grad, zIndex:20,
-        transform: isActive?'scaleX(1)':'scaleX(0)', transformOrigin:'left', transition:'transform .5s ease' }}/>
-
-      {/* Float hearts */}
-      {hearts.map(h => (
-        <div key={h.id} className="float-heart" style={{ left:`${h.x}%`, bottom:'38%' }}>❤️</div>
-      ))}
-
-      {/* Vibe badge */}
-      <div style={{ position:'absolute', top:76, right:13, zIndex:15, ...glass,
-        borderRadius:20, padding:'4px 10px', display:'flex', alignItems:'center', gap:5,
-        borderColor: theme.accent }}>
-        <span style={{ fontSize:11 }}>{theme.icon}</span>
-        <span style={{ fontSize:9, color:theme.accent, fontWeight:800, letterSpacing:.8, textTransform:'uppercase' }}>
-          {theme.label}
-        </span>
-      </div>
-
-      {/* Action rail */}
-      <div style={{ position:'absolute', right:11, bottom:128, display:'flex',
-        flexDirection:'column', gap:9, zIndex:10 }}>
-        <GlassBtn icon={liked?'❤️':'🤍'} label={liked?'Liked':data.likes}
-          accent={theme.accent} glow={theme.glow} active={liked} onClick={()=>setLiked(p=>!p)}/>
-        <GlassBtn icon="💬" label={data.comments} accent={theme.accent} glow={theme.glow}/>
-        <GlassBtn icon="↗️" label={data.shares} accent={theme.accent} glow={theme.glow}/>
-        <GlassBtn icon={muted?'🔇':'🔊'} label={muted?'Muted':'Live'}
-          accent={theme.accent} glow={theme.glow} active={!muted} onClick={()=>setMuted(p=>!p)}/>
-      </div>
-
-      {/* Creator + description */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:72, padding:'0 15px 30px', zIndex:10 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-          <div style={{ width:43, height:43, borderRadius:'50%', flexShrink:0,
-            background:theme.grad, display:'flex', alignItems:'center', justifyContent:'center',
-            fontWeight:900, fontSize:16, color:'#fff', boxShadow:`0 0 16px ${theme.glow}` }}>
-            {data.av}
+          {/* Right actions */}
+          <div className="video-actions">
+            <button className="action-btn" onClick={() => { setLiked(!liked); setLikes(l => liked?l-1:l+1); }}>
+              <div className="action-icon glass" style={{ borderColor: liked ? "var(--pink)" : undefined }}>
+                <Icon name="Heart" size={20} color={liked?"var(--pink)":"#fff"} />
+              </div>
+              <span style={{ color:"#fff", fontSize:11 }}>{(likes/1000).toFixed(1)}K</span>
+            </button>
+            <button className="action-btn">
+              <div className="action-icon glass"><Icon name="MessageCircle" size={20} color="#fff" /></div>
+              <span style={{ color:"#fff", fontSize:11 }}>{Math.floor(Math.random()*9+1)}.{Math.floor(Math.random()*9)}K</span>
+            </button>
+            <button className="action-btn" onClick={() => setSaved(!saved)}>
+              <div className="action-icon glass">
+                <Icon name="Bookmark" size={20} color={saved?"var(--cyan)":"#fff"} />
+              </div>
+              <span style={{ color:"#fff", fontSize:11 }}>Save</span>
+            </button>
+            <button className="action-btn">
+              <div className="action-icon glass"><Icon name="Share2" size={20} color="#fff" /></div>
+              <span style={{ color:"#fff", fontSize:11 }}>Share</span>
+            </button>
           </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:700, fontSize:14, color:'#fff' }}>{data.creator}</div>
-            <div style={{ display:'flex', gap:5, marginTop:2, flexWrap:'wrap' }}>
-              {data.tags.map(t=>(
-                <span key={t} style={{ fontSize:10, color:theme.accent, fontWeight:700 }}>{t}</span>
+
+          {/* Bottom info */}
+          <div style={{ position:"absolute", bottom:24, left:16, right:80 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+              <div style={{ width:38, height:38, borderRadius:"50%", background:"linear-gradient(135deg,var(--cyan),#7b61ff)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14, fontWeight:700, color:"#050508" }}>
+                {item.user[1].toUpperCase()}
+              </div>
+              <div>
+                <div style={{ color:"#fff", fontWeight:600, fontSize:14 }}>{item.user}</div>
+                <div style={{ color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:4 }}>
+                  <Icon name="Eye" size={12} color="var(--text2)" /> {item.views} views
+                </div>
+              </div>
+              <button style={{ marginLeft:"auto", padding:"6px 14px", borderRadius:20, border:"1px solid var(--border2)", background:"rgba(255,255,255,0.07)", color:"#fff", fontSize:12, fontWeight:600 }}>
+                Follow
+              </button>
+            </div>
+            <p style={{ color:"#fff", fontSize:14, fontWeight:500, lineHeight:1.4, textShadow:"0 1px 8px rgba(0,0,0,0.8)" }}>
+              {item.title}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    function HomeView() {
+      const [tab, setTab] = useState("foryou");
+      const containerRef = useRef(null);
+      const [height, setHeight] = useState(window.innerHeight - 120);
+
+      useEffect(() => {
+        const update = () => {
+          if (containerRef.current) setHeight(containerRef.current.offsetHeight);
+        };
+        update();
+        window.addEventListener("resize", update);
+        return () => window.removeEventListener("resize", update);
+      }, []);
+
+      return (
+        <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+          {/* Top bar */}
+          <div style={{ padding:"14px 16px 0", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:28, letterSpacing:3, background:"linear-gradient(135deg,var(--cyan),#7b61ff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
+              VEYRA
+            </div>
+            <div style={{ display:"flex", gap:12 }}>
+              <button style={{ background:"none", border:"none", color:"var(--text2)" }}>
+                <Icon name="Search" size={22} color="var(--text2)" />
+              </button>
+              <button style={{ background:"none", border:"none", color:"var(--text2)" }}>
+                <Icon name="Bell" size={22} color="var(--text2)" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ padding:"0 16px", flexShrink:0 }}>
+            <div className="tab-bar" style={{ borderBottom:"none", gap:24, padding:"8px 0 0" }}>
+              {[{id:"following",label:"Following"},{id:"foryou",label:"For You"}].map(t => (
+                <button key={t.id} className={`tab${tab===t.id?" active":""}`} onClick={() => setTab(t.id)}
+                  style={{ flex:"none", padding:"10px 0" }}>
+                  {t.label}
+                </button>
               ))}
             </div>
           </div>
-          <button style={{ background:'transparent', border:`1.5px solid ${theme.accent}`,
-            borderRadius:22, padding:'5px 13px', color:theme.accent,
-            fontWeight:800, fontSize:11, boxShadow:`0 0 10px ${theme.glow}`, flexShrink:0 }}>
-            Follow
-          </button>
+
+          {/* Feed */}
+          <div className="feed-scroll" ref={containerRef} style={{ flex:1, overflow:"hidden scroll" }}>
+            {MOCK_FEED.map(item => <FeedCard key={item.id} item={item} height={height} />)}
+          </div>
         </div>
-        <div onClick={()=>setDesc(p=>!p)} style={{ cursor:'pointer' }}>
-          <p style={{ fontSize:12, color:'rgba(255,255,255,.8)', lineHeight:1.5, margin:0,
-            display: desc?'block':'-webkit-box',
-            WebkitLineClamp: desc?'unset':1, WebkitBoxOrient:'vertical',
-            overflow: desc?'visible':'hidden', textOverflow:'ellipsis' }}>
-            {data.desc}
-            {!desc && <span style={{ color:theme.accent, marginLeft:4, fontWeight:700 }}> more</span>}
-          </p>
-        </div>
-      </div>
+      );
+    }
 
-      <VideoProgress videoRef={vRef} accent={theme.accent}/>
-    </div>
-  );
-}
+    // ════════════════════════════════════════════════════════════════════════
+    // GAMING VIEW
+    // ════════════════════════════════════════════════════════════════════════
+    function GamingView() {
+      const [tab, setTab] = useState("browse");
 
-// ─── VIBE DIAL ────────────────────────────────────────────────────────────────
-function VibeDial({ active, onChange }) {
-  return (
-    <div style={{ display:'flex', gap:3, borderRadius:40, padding:'4px 5px', ...glass }}>
-      {Object.entries(VIBES).map(([k,t]) => {
-        const on = active===k;
-        return (
-          <button key={k} onClick={()=>onChange(k)}
-            style={{ background: on?t.grad:'transparent', border:'none', borderRadius:28,
-              padding:'6px 11px', color: on?'#fff':'rgba(255,255,255,.35)',
-              fontWeight:800, fontSize:11, letterSpacing:.4,
-              boxShadow: on?`0 0 14px ${t.glow}`:'none',
-              display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap',
-              transition:'color .2s, box-shadow .2s' }}>
-            <span style={{ fontSize:12 }}>{t.icon}</span>{t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+      return (
+        <div style={{ height:"100%", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ padding:"16px 16px 0", flexShrink:0 }}>
+            <h1 style={{ fontFamily:"var(--font-display)", fontSize:28, letterSpacing:2, color:"var(--text)", marginBottom:4 }}>GAMING</h1>
+            <p style={{ color:"var(--text3)", fontSize:13 }}>Top streams · Tournaments · Highlights</p>
+          </div>
 
-// ─── FEED SCREEN ──────────────────────────────────────────────────────────────
-function FeedScreen({ user, onSignOut }) {
-  const [vibe, setVibe]       = useState('hype');
-  const [idx, setIdx]         = useState(0);
-  const [splash, setSplash]   = useState(false);
-  const [showCam, setShowCam] = useState(false);
-  const [navActive, setNav]   = useState('home');
-
-  const containerRef = useRef(null);
-  const [h, setH]    = useState(window.innerHeight);
-  const touchY       = useRef(null);
-  const wheelBusy    = useRef(false);
-
-  const theme = VIBES[vibe];
-  const feed  = VIDEOS[vibe];
-
-  useEffect(() => {
-    const ro = new ResizeObserver(e => setH(e[0].contentRect.height));
-    if (containerRef.current) ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  const changeVibe = (next) => {
-    if (next===vibe) return;
-    setVibe(next); setIdx(0); setSplash(true);
-    setTimeout(()=>setSplash(false), 700);
-  };
-
-  const go = useCallback((dir) => {
-    setIdx(i => Math.max(0, Math.min(feed.length-1, i+dir)));
-  }, [feed.length]);
-
-  const onTouchStart = e => { touchY.current = e.touches[0].clientY; };
-  const onTouchEnd   = e => {
-    const d = touchY.current - e.changedTouches[0].clientY;
-    if (Math.abs(d) > 44) go(d>0?1:-1);
-  };
-
-  useEffect(() => {
-    const el = containerRef.current; if (!el) return;
-    const fn = e => {
-      e.preventDefault();
-      if (wheelBusy.current) return;
-      wheelBusy.current = true;
-      go(e.deltaY>0?1:-1);
-      setTimeout(()=>{ wheelBusy.current=false; }, 650);
-    };
-    el.addEventListener('wheel', fn, { passive:false });
-    return () => el.removeEventListener('wheel', fn);
-  }, [go]);
-
-  const navItems = [
-    { id:'home', icon:'🏠', label:'Home' },
-    { id:'explore', icon:'🔍', label:'Explore' },
-    { id:'create', icon:null },
-    { id:'inbox', icon:'💌', label:'Inbox' },
-    { id:'me', icon:'👤', label:'Me' },
-  ];
-
-  return (
-    <div ref={containerRef}
-      style={{ width:'100%', height:'100%', background:'#000', position:'relative', overflow:'hidden' }}
-      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-
-      {/* Feed stack */}
-      <div style={{ position:'absolute', inset:0, overflow:'hidden' }}>
-        <div style={{ position:'absolute', inset:0, width:'100%',
-          transform:`translateY(${-idx*h}px)`, transition:'transform .45s cubic-bezier(.25,.8,.25,1)' }}>
-          {feed.map((item,i) => (
-            <div key={item.id} style={{ position:'absolute', top:i*h, left:0, right:0, height:h }}>
-              <VideoCard data={item} isActive={i===idx} theme={theme}/>
+          <div style={{ padding:"0 16px", flexShrink:0 }}>
+            <div className="tab-bar" style={{ borderBottom:"1px solid var(--border)", gap:0 }}>
+              {["Browse","Live","Clips","Esports"].map(t => (
+                <button key={t} className={`tab${tab===t.toLowerCase()?" active":""}`}
+                  onClick={() => setTab(t.toLowerCase())} style={{ flex:1, padding:"12px 4px", fontSize:12 }}>
+                  {t}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div style={{ flex:1, overflowY:"auto", padding:"4px 0" }}>
+            {/* Featured banner */}
+            <div style={{ margin:"12px 12px 0", borderRadius:16, overflow:"hidden", background:GRADIENTS[0], aspectRatio:"16/7", position:"relative" }}>
+              <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.01) 0px,rgba(255,255,255,0.01) 1px,transparent 1px,transparent 20px)" }} />
+              <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(5,5,8,0.85) 0%,transparent 60%)" }} />
+              <div style={{ position:"absolute", top:12, left:12 }}>
+                <span className="live-badge">● LIVE</span>
+              </div>
+              <div style={{ position:"absolute", bottom:16, left:16, right:16 }}>
+                <p style={{ color:"var(--text2)", fontSize:11, marginBottom:4 }}>@solara_streams</p>
+                <p style={{ color:"#fff", fontWeight:600, fontSize:16, marginBottom:6 }}>RANKED GRIND — Road to Top 500</p>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ color:"var(--cyan)", fontSize:12, fontFamily:"var(--font-mono)" }}>
+                    <Icon name="Eye" size={12} color="var(--cyan)" /> 14.2K watching
+                  </span>
+                  <span style={{ background:"rgba(0,229,255,0.12)", color:"var(--cyan)", fontSize:11, padding:"3px 10px", borderRadius:20, border:"1px solid var(--cyan-dim)" }}>Apex Legends</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Categories header */}
+            <div style={{ padding:"20px 16px 10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ color:"var(--text)", fontWeight:600, fontSize:15 }}>Top Games</span>
+              <button className="btn-ghost" style={{ fontSize:12 }}>See all</button>
+            </div>
+
+            {/* Game grid */}
+            <div className="game-grid">
+              {MOCK_GAMES.map(g => (
+                <motion.div key={g.id} className="game-card" style={{ background:g.grad }}
+                  whileTap={{ scale:0.97 }}>
+                  <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.015) 0px,rgba(255,255,255,0.015) 1px,transparent 1px,transparent 15px)" }} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(5,5,8,0.8) 0%,transparent 55%)" }} />
+                  <div style={{ position:"absolute", top:8, right:8 }}>
+                    <span style={{ background:"rgba(0,0,0,0.6)", color:"var(--text2)", fontSize:10, fontFamily:"var(--font-mono)", padding:"3px 7px", borderRadius:4 }}>
+                      {g.viewers}
+                    </span>
+                  </div>
+                  <div style={{ position:"absolute", bottom:8, left:8, right:8 }}>
+                    <p style={{ color:"#fff", fontWeight:700, fontSize:13, marginBottom:1 }}>{g.title}</p>
+                    <p style={{ color:"var(--text2)", fontSize:10 }}>{g.streamer}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      );
+    }
 
-      {/* Vibe crossfade flash */}
-      {splash && (
-        <div style={{ position:'absolute', inset:0, zIndex:150, pointerEvents:'none',
-          background:theme.grad, opacity:.3, animation:'none',
-          transition:'opacity .6s', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
-          <span style={{ fontSize:52 }}>{theme.icon}</span>
-          <span style={{ fontSize:17, fontWeight:900, color:'#fff', letterSpacing:2, textTransform:'uppercase' }}>
-            {theme.label} Mode
-          </span>
+    // ════════════════════════════════════════════════════════════════════════
+    // LIVE VIEW
+    // ════════════════════════════════════════════════════════════════════════
+    function LiveView({ user }) {
+      const [goingLive, setGoingLive] = useState(false);
+      const [liveTitle, setLiveTitle] = useState("");
+      const [broadcasting, setBroadcasting] = useState(false);
+      const [chat, setChat] = useState([
+        { id:1, user:"phantom_x",  msg:"lets gooo 🔥", time:"now" },
+        { id:2, user:"luna.stream", msg:"first time catching you live!", time:"now" },
+        { id:3, user:"krypt0_exe",  msg:"quality looks insane", time:"now" },
+        { id:4, user:"v0idwalker",  msg:"W stream W stream", time:"now" },
+      ]);
+      const [chatInput, setChatInput] = useState("");
+      const chatRef = useRef(null);
+
+      const sendChat = () => {
+        if (!chatInput.trim()) return;
+        setChat(c => [...c, { id:Date.now(), user:user.handle.slice(1), msg:chatInput, time:"now" }]);
+        setChatInput("");
+        setTimeout(() => { if(chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 50);
+      };
+
+      const startBroadcast = () => {
+        if (!liveTitle.trim()) return;
+        setBroadcasting(true);
+        setGoingLive(false);
+      };
+
+      if (broadcasting) {
+        return (
+          <div style={{ height:"100%", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+            {/* Live header */}
+            <div style={{ padding:"14px 16px", background:"var(--bg2)", borderBottom:"1px solid var(--border)", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
+                  <span className="live-badge">● LIVE</span>
+                  <span style={{ color:"var(--text2)", fontSize:11, fontFamily:"var(--font-mono)" }}>00:04:21</span>
+                </div>
+                <p style={{ color:"var(--text)", fontWeight:600, fontSize:14 }}>{liveTitle}</p>
+              </div>
+              <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ color:"var(--cyan)", fontFamily:"var(--font-mono)", fontSize:16, fontWeight:700 }}>0</div>
+                  <div style={{ color:"var(--text3)", fontSize:10 }}>VIEWERS</div>
+                </div>
+                <button onClick={() => setBroadcasting(false)}
+                  style={{ padding:"8px 14px", borderRadius:8, border:"1px solid var(--pink)", background:"var(--pink-dim)", color:"var(--pink)", fontSize:12, fontWeight:700 }}>
+                  End
+                </button>
+              </div>
+            </div>
+
+            {/* Stream preview */}
+            <div style={{ background:GRADIENTS[0], flex:"0 0 220px", position:"relative" }}>
+              <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.01) 0px,rgba(255,255,255,0.01) 1px,transparent 1px,transparent 20px)" }} />
+              <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ color:"rgba(255,255,255,0.2)", fontSize:11, letterSpacing:2, marginBottom:6 }}>STREAM PREVIEW</div>
+                  <div style={{ color:"rgba(255,255,255,0.1)", fontSize:10 }}>Camera feed here</div>
+                </div>
+              </div>
+              <div style={{ position:"absolute", bottom:12, left:12, display:"flex", gap:8 }}>
+                <button style={{ background:"rgba(0,0,0,0.6)", border:"1px solid var(--border)", borderRadius:8, padding:"6px 12px", color:"#fff", fontSize:11 }}>
+                  <Icon name="Mic" size={12} color="#fff" /> Mic
+                </button>
+                <button style={{ background:"rgba(0,0,0,0.6)", border:"1px solid var(--border)", borderRadius:8, padding:"6px 12px", color:"#fff", fontSize:11 }}>
+                  <Icon name="Camera" size={12} color="#fff" /> Cam
+                </button>
+              </div>
+            </div>
+
+            {/* Chat */}
+            <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+              <div style={{ padding:"10px 16px 6px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+                <span style={{ color:"var(--text2)", fontSize:12, fontWeight:600, letterSpacing:0.5 }}>LIVE CHAT</span>
+              </div>
+              <div ref={chatRef} style={{ flex:1, overflowY:"auto", padding:"8px 16px", display:"flex", flexDirection:"column", gap:8 }}>
+                {chat.map(m => (
+                  <div key={m.id} style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
+                    <span style={{ color:"var(--cyan)", fontWeight:700, fontSize:13, flexShrink:0 }}>{m.user}</span>
+                    <span style={{ color:"var(--text)", fontSize:13 }}>{m.msg}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding:"10px 12px", borderTop:"1px solid var(--border)", display:"flex", gap:8, flexShrink:0 }}>
+                <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key==="Enter" && sendChat()}
+                  placeholder="Say something..."
+                  style={{ flex:1, background:"var(--bg3)", border:"1px solid var(--border2)", borderRadius:10, padding:"10px 14px", color:"var(--text)", fontSize:14 }} />
+                <button onClick={sendChat}
+                  style={{ background:"var(--cyan)", border:"none", borderRadius:10, padding:"0 16px", color:"#050508", fontWeight:700, fontSize:13 }}>
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ height:"100%", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ padding:"16px 16px 0", flexShrink:0 }}>
+            <h1 style={{ fontFamily:"var(--font-display)", fontSize:28, letterSpacing:2, color:"var(--text)", marginBottom:4 }}>LIVE</h1>
+            <p style={{ color:"var(--text3)", fontSize:13 }}>Broadcast live or watch others</p>
+          </div>
+
+          {/* Go live button */}
+          <div style={{ padding:"16px 16px 12px", flexShrink:0 }}>
+            <motion.button whileTap={{ scale:0.97 }} onClick={() => setGoingLive(true)}
+              style={{ width:"100%", padding:"16px", borderRadius:14, border:"none", background:"linear-gradient(135deg,var(--pink),#7b61ff)", color:"#fff", fontSize:15, fontWeight:700, letterSpacing:0.5, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+              <Icon name="Radio" size={20} color="#fff" />
+              Go Live Now
+            </motion.button>
+          </div>
+
+          {/* Live streams */}
+          <div style={{ padding:"0 16px 8px", flexShrink:0, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ color:"var(--text)", fontWeight:600, fontSize:15 }}>Live Now</span>
+            <span style={{ color:"var(--text3)", fontSize:12 }}>{MOCK_LIVE.length} streams</span>
+          </div>
+
+          <div style={{ flex:1, overflowY:"auto", padding:"0 12px" }}>
+            {MOCK_LIVE.map(stream => (
+              <motion.div key={stream.id} whileTap={{ scale:0.98 }}
+                style={{ marginBottom:12, borderRadius:14, overflow:"hidden", border:"1px solid var(--border)" }}>
+                {/* Thumbnail */}
+                <div style={{ background:stream.grad, aspectRatio:"16/7", position:"relative" }}>
+                  <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.01) 0px,rgba(255,255,255,0.01) 1px,transparent 1px,transparent 20px)" }} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(5,5,8,0.7) 0%,transparent 50%)" }} />
+                  <div style={{ position:"absolute", top:10, left:10, display:"flex", gap:8 }}>
+                    <span className="live-badge">● LIVE</span>
+                    <span style={{ background:"rgba(0,0,0,0.6)", color:"var(--text2)", fontSize:10, fontFamily:"var(--font-mono)", padding:"3px 8px", borderRadius:4 }}>
+                      {stream.duration}
+                    </span>
+                  </div>
+                  <div style={{ position:"absolute", bottom:10, left:10, right:10 }}>
+                    <p style={{ color:"var(--text2)", fontSize:11 }}>{stream.user}</p>
+                    <p style={{ color:"#fff", fontWeight:600, fontSize:13 }}>{stream.title}</p>
+                  </div>
+                </div>
+                {/* Info bar */}
+                <div style={{ background:"var(--bg2)", padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:4 }}>
+                    <Icon name="Eye" size={12} color="var(--text3)" /> {stream.viewers} watching
+                  </span>
+                  <button style={{ background:"linear-gradient(135deg,var(--cyan),#7b61ff)", border:"none", borderRadius:8, padding:"6px 14px", color:"#050508", fontSize:12, fontWeight:700 }}>
+                    Watch
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Go live modal */}
+          <AnimatePresence>
+            {goingLive && (
+              <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                style={{ position:"fixed", inset:0, zIndex:300, background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"flex-end", justifyContent:"center" }}
+                onClick={() => setGoingLive(false)}>
+                <motion.div initial={{ y:200 }} animate={{ y:0 }} exit={{ y:200 }}
+                  transition={{ type:"spring", damping:28 }}
+                  onClick={e => e.stopPropagation()}
+                  style={{ width:"100%", maxWidth:480, background:"var(--bg2)", borderRadius:"24px 24px 0 0", padding:"28px 24px max(28px,env(safe-area-inset-bottom))", border:"1px solid var(--border2)" }}>
+                  <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 24px" }} />
+                  <h2 style={{ color:"var(--text)", fontSize:20, fontWeight:700, marginBottom:6 }}>Go Live</h2>
+                  <p style={{ color:"var(--text3)", fontSize:13, marginBottom:20 }}>Set up your broadcast before going live</p>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ color:"var(--text2)", fontSize:12, fontWeight:600, letterSpacing:0.5, display:"block", marginBottom:6 }}>STREAM TITLE</label>
+                    <input className="input-field" placeholder="What are you streaming today?" value={liveTitle}
+                      onChange={e => setLiveTitle(e.target.value)} />
+                  </div>
+                  <div style={{ marginBottom:20 }}>
+                    <label style={{ color:"var(--text2)", fontSize:12, fontWeight:600, letterSpacing:0.5, display:"block", marginBottom:8 }}>CATEGORY</label>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      {["Gaming","Just Chatting","Music","Creative","IRL"].map(c => (
+                        <button key={c} style={{ padding:"7px 14px", borderRadius:20, border:"1px solid var(--border2)", background:"var(--bg3)", color:"var(--text2)", fontSize:12, fontWeight:500 }}>
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button className="btn-primary" onClick={startBroadcast}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                    <Icon name="Radio" size={18} color="#050508" /> Start Broadcasting
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
+      );
+    }
 
-      {/* Page dots */}
-      <div style={{ position:'absolute', right:4, top:'50%', transform:'translateY(-50%)',
-        zIndex:30, display:'flex', flexDirection:'column', gap:5, pointerEvents:'none' }}>
-        {feed.map((_,i) => (
-          <div key={i} style={{ width:3, borderRadius:2,
-            height: i===idx ? 22 : 4,
-            background: i===idx ? theme.accent : 'rgba(255,255,255,.18)',
-            boxShadow: i===idx ? `0 0 8px ${theme.accent}` : 'none',
-            transition:'height .3s,background .3s,box-shadow .3s' }}/>
-        ))}
-      </div>
+    // ════════════════════════════════════════════════════════════════════════
+    // PROFILE VIEW
+    // ════════════════════════════════════════════════════════════════════════
+    function ProfileView({ user, onLogout }) {
+      const [tab, setTab] = useState("videos");
+      const profile = MOCK_USERS[0];
+      const gridColors = [GRADIENTS[0],GRADIENTS[1],GRADIENTS[3],GRADIENTS[2],GRADIENTS[4],GRADIENTS[5]];
 
-      {/* TOP BAR */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:100,
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'14px 13px 10px',
-        background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,transparent 100%)' }}>
-        {/* Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:7, flexShrink:0 }}>
-          <div style={{ width:31, height:31, borderRadius:10, background:theme.grad,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontWeight:900, fontSize:15, color:'#fff', fontFamily:'Georgia,serif',
-            boxShadow:`0 0 14px ${theme.glow}`, transition:'box-shadow .4s' }}>V</div>
-          <span style={{ fontSize:18, fontWeight:900, letterSpacing:-0.6, fontFamily:'Georgia,serif',
-            background:theme.grad, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
-            Veyra
-          </span>
+      return (
+        <div style={{ height:"100%", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          {/* Top bar */}
+          <div style={{ padding:"14px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+            <h2 style={{ color:"var(--text)", fontWeight:700, fontSize:17 }}>Profile</h2>
+            <div style={{ display:"flex", gap:12 }}>
+              <button style={{ background:"none", border:"none" }}><Icon name="Share2" size={20} color="var(--text2)" /></button>
+              <button style={{ background:"none", border:"none" }} onClick={onLogout}><Icon name="LogOut" size={20} color="var(--text2)" /></button>
+            </div>
+          </div>
+
+          <div style={{ flex:1, overflowY:"auto" }}>
+            {/* Profile header */}
+            <div style={{ padding:"0 16px 20px" }}>
+              {/* Avatar + follow button */}
+              <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:14 }}>
+                <div style={{ position:"relative" }}>
+                  <div style={{ width:84, height:84, borderRadius:"50%", background:"linear-gradient(135deg,var(--cyan),#7b61ff)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, fontWeight:900, color:"#050508", fontFamily:"var(--font-display)", letterSpacing:1 }}>
+                    {(user.username||"D")[0].toUpperCase()}
+                  </div>
+                  <div style={{ position:"absolute", bottom:2, right:2, width:18, height:18, borderRadius:"50%", background:"var(--cyan)", border:"2px solid var(--bg)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Icon name="Check" size={10} color="#050508" strokeWidth={3} />
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button style={{ padding:"9px 20px", borderRadius:10, border:"1px solid var(--border2)", background:"var(--surface)", color:"var(--text)", fontSize:13, fontWeight:600 }}>
+                    Edit Profile
+                  </button>
+                  <button style={{ width:38, height:38, borderRadius:10, border:"1px solid var(--border2)", background:"var(--surface)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Icon name="Settings" size={18} color="var(--text2)" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Name & handle */}
+              <div style={{ marginBottom:10 }}>
+                <h1 style={{ color:"var(--text)", fontWeight:700, fontSize:20, marginBottom:2 }}>{user.username}</h1>
+                <p style={{ color:"var(--text3)", fontSize:13, fontFamily:"var(--font-mono)" }}>{user.handle}</p>
+              </div>
+
+              {/* Bio */}
+              <p style={{ color:"var(--text2)", fontSize:14, lineHeight:1.5, marginBottom:16 }}>
+                {profile.bio}
+              </p>
+
+              {/* Stats */}
+              <div style={{ display:"flex", background:"var(--bg3)", borderRadius:12, border:"1px solid var(--border)", overflow:"hidden", marginBottom:14 }}>
+                {[{label:"Followers",val:profile.followers},{label:"Following",val:profile.following},{label:"Likes",val:profile.likes}].map(s => (
+                  <div key={s.label} className="stat-box">
+                    <span style={{ color:"var(--text)", fontWeight:700, fontSize:18 }}>{s.val}</span>
+                    <span style={{ color:"var(--text3)", fontSize:11, letterSpacing:0.3 }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Social links row */}
+              <div style={{ display:"flex", gap:8 }}>
+                {["Twitter","Twitch","Discord"].map(s => (
+                  <button key={s} style={{ flex:1, padding:"8px 0", borderRadius:8, border:"1px solid var(--border2)", background:"var(--surface)", color:"var(--text2)", fontSize:11, fontWeight:600 }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Content tabs */}
+            <div style={{ borderTop:"1px solid var(--border)", borderBottom:"1px solid var(--border)" }}>
+              <div style={{ display:"flex" }}>
+                {[{id:"videos",icon:"Video"},{id:"liked",icon:"Heart"},{id:"saved",icon:"Bookmark"},{id:"reposts",icon:"Repeat2"}].map(t => (
+                  <button key={t.id} onClick={() => setTab(t.id)}
+                    style={{ flex:1, padding:"12px 0", background:"none", border:"none", borderBottom:`2px solid ${tab===t.id?"var(--cyan)":"transparent"}`, display:"flex", alignItems:"center", justifyContent:"center", transition:"border-color 0.2s" }}>
+                    <Icon name={t.icon} size={18} color={tab===t.id?"var(--cyan)":"var(--text3)"} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Content grid */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:1.5, background:"var(--border)" }}>
+              {gridColors.map((g, i) => (
+                <div key={i} style={{ aspectRatio:"9/16", background:g, position:"relative" }}>
+                  <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,0.01) 0px,rgba(255,255,255,0.01) 1px,transparent 1px,transparent 15px)" }} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(5,5,8,0.7) 0%,transparent 50%)" }} />
+                  <div style={{ position:"absolute", bottom:6, left:6, display:"flex", alignItems:"center", gap:3 }}>
+                    <Icon name="Play" size={10} color="#fff" />
+                    <span style={{ color:"#fff", fontSize:10, fontWeight:600 }}>{Math.floor(Math.random()*900+100)}K</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <VibeDial active={vibe} onChange={changeVibe}/>
-        {/* Avatar */}
-        <button onClick={onSignOut}
-          style={{ width:33, height:33, borderRadius:'50%', background:theme.grad,
-            border:'none', color:'#fff', fontWeight:800, fontSize:13,
-            boxShadow:`0 0 12px ${theme.glow}`, flexShrink:0, transition:'box-shadow .4s' }}>
-          {(user.name||'G').charAt(0).toUpperCase()}
-        </button>
-      </div>
+      );
+    }
 
-      {/* BOTTOM NAV */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:100,
-        display:'flex', alignItems:'center', justifyContent:'space-around',
-        padding:'10px 8px 28px',
-        background:'rgba(0,0,0,.78)',
-        backdropFilter:'blur(22px)', WebkitBackdropFilter:'blur(22px)',
-        borderTop:'0.5px solid rgba(255,255,255,.06)' }}>
-        {navItems.map(item => {
-          if (item.id==='create') return (
-            <button key="create" onClick={()=>setShowCam(true)}
-              style={{ width:56, height:56, borderRadius:'50%', background:theme.grad,
-                border:'none', display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:24, boxShadow:`0 0 24px ${theme.glow},0 0 48px ${theme.dim}`,
-                position:'relative', marginTop:-16, flexShrink:0, transition:'box-shadow .5s' }}>
-              ➕
-            </button>
-          );
-          const on = navActive===item.id;
-          return (
-            <button key={item.id} onClick={()=>setNav(item.id)}
-              style={{ background:'transparent', border:'none',
-                display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-                padding:'4px 10px', opacity:on?1:.35, transition:'opacity .2s' }}>
-              <span style={{ fontSize:21 }}>{item.icon}</span>
-              <span style={{ fontSize:9, fontWeight:800, letterSpacing:.4,
-                color:on?theme.accent:'rgba(255,255,255,.5)', transition:'color .3s' }}>
-                {item.label}
-              </span>
-              {on && <div style={{ width:4, height:4, borderRadius:'50%',
-                background:theme.accent, boxShadow:`0 0 7px ${theme.accent}` }}/>}
-            </button>
-          );
-        })}
-      </div>
+    // ════════════════════════════════════════════════════════════════════════
+    // CAMERA / CREATE VIEW
+    // ════════════════════════════════════════════════════════════════════════
+    function CameraView({ onClose }) {
+      const [recording, setRecording]   = useState(false);
+      const [duration, setDuration]     = useState("15s");
+      const [elapsed, setElapsed]       = useState(0);
+      const [cameraReady, setCameraReady] = useState(false);
+      const [cameraError, setCameraError] = useState("");
+      const [mediaRecorder, setMediaRecorder] = useState(null);
+      const [stream, setStream]         = useState(null);
+      const videoRef = useRef(null);
+      const timerRef = useRef(null);
+      const durations = ["10s","15s","20s","1m","5m"];
 
-      {/* Swipe hint */}
-      {idx===0 && (
-        <div style={{ position:'absolute', bottom:110, left:'50%', transform:'translateX(-50%)',
-          zIndex:80, pointerEvents:'none', ...glass, borderRadius:20, padding:'7px 15px',
-          display:'flex', alignItems:'center', gap:7, borderColor:theme.accent,
-          animation:'floatUp 1s ease-out 3s forwards' }}>
-          <span style={{ fontSize:14 }}>⬆️</span>
-          <span style={{ fontSize:10, color:'#fff', fontWeight:700, letterSpacing:.8 }}>SWIPE FOR MORE</span>
-        </div>
-      )}
+      const durSeconds = { "10s":10,"15s":15,"20s":20,"1m":60,"5m":300 };
 
-      {/* Camera */}
-      {showCam && <CameraScreen onClose={()=>setShowCam(false)} theme={theme}/>}
-    </div>
-  );
-}
+      useEffect(() => {
+        let s;
+        (async () => {
+          try {
+            s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user" }, audio:true });
+            setStream(s);
+            if (videoRef.current) {
+              videoRef.current.srcObject = s;
+              videoRef.current.play();
+            }
+            setCameraReady(true);
+          } catch(e) {
+            setCameraError("Camera access denied. Enable camera permissions to record.");
+          }
+        })();
+        return () => {
+          if(s) s.getTracks().forEach(t => t.stop());
+          clearInterval(timerRef.current);
+        };
+      }, []);
 
-// ─── ROOT APP ─────────────────────────────────────────────────────────────────
-function App() {
-  const [user, setUser] = useState(null);
-
-  return (
-    <div style={{ width:'100vw', height:'100vh', background:'#000',
-      display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{
-        width:'min(430px,100vw)', height:'min(932px,100vh)',
-        position:'relative', background:'#000', overflow:'hidden',
-        borderRadius:'clamp(0px,(100vw - 430px)*999,48px)',
-        boxShadow:'0 40px 120px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.04)',
-      }}>
-        {!user
-          ? <AuthScreen onAuth={setUser}/>
-          : <FeedScreen user={user} onSignOut={()=>setUser(null)}/>
+      const toggleRecord = () => {
+        if (!cameraReady) return;
+        if (recording) {
+          clearInterval(timerRef.current);
+          if(mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+          setRecording(false);
+          setElapsed(0);
+        } else {
+          setElapsed(0);
+          const maxSec = durSeconds[duration];
+          timerRef.current = setInterval(() => {
+            setElapsed(e => {
+              if(e+1 >= maxSec) {
+                clearInterval(timerRef.current);
+                setRecording(false);
+                return 0;
+              }
+              return e+1;
+            });
+          }, 1000);
+          try {
+            const mr = new MediaRecorder(stream);
+            mr.start();
+            setMediaRecorder(mr);
+          } catch {}
+          setRecording(true);
         }
-      </div>
-    </div>
-  );
-}
+      };
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
+      const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+      const progress = recording ? elapsed / durSeconds[duration] : 0;
+
+      return (
+        <div className="camera-screen">
+          {/* Camera viewfinder */}
+          <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
+            {cameraReady
+              ? <video ref={videoRef} autoPlay playsInline muted style={{ width:"100%",height:"100%",objectFit:"cover",transform:"scaleX(-1)" }} />
+              : <div style={{ width:"100%",height:"100%",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:12 }}>
+                  {cameraError
+                    ? <><Icon name="CameraOff" size={40} color="var(--text3)"/><p style={{ color:"var(--text3)", fontSize:14, textAlign:"center", padding:"0 32px" }}>{cameraError}</p></>
+                    : <><Spinner size={32} color="var(--text3)"/><p style={{ color:"var(--text3)", fontSize:14 }}>Starting camera...</p></>
+                  }
+                </div>
+            }
+
+            {/* Top controls */}
+            <div style={{ position:"absolute",top:0,left:0,right:0, padding:"max(16px,env(safe-area-inset-top)) 16px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", background:"linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)" }}>
+              <button onClick={onClose} style={{ width:38,height:38,borderRadius:"50%",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <Icon name="X" size={18} color="#fff" />
+              </button>
+              {recording && (
+                <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
+                  style={{ display:"flex", alignItems:"center", gap:8, background:"rgba(0,0,0,0.6)", padding:"6px 14px", borderRadius:20 }}>
+                  <motion.div animate={{ opacity:[1,0,1] }} transition={{ repeat:Infinity, duration:1 }}
+                    style={{ width:8,height:8,borderRadius:"50%",background:"var(--pink)" }} />
+                  <span style={{ color:"#fff", fontFamily:"var(--font-mono)", fontSize:13 }}>{fmtTime(elapsed)}</span>
+                </motion.div>
+              )}
+              <button style={{ width:38,height:38,borderRadius:"50%",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+                <Icon name="FlipHorizontal2" size={18} color="#fff" />
+              </button>
+            </div>
+
+            {/* Progress bar */}
+            {recording && (
+              <div style={{ position:"absolute",top:0,left:0,right:0,height:3,background:"rgba(255,255,255,0.2)" }}>
+                <motion.div initial={{ width:0 }} animate={{ width:`${progress*100}%` }} transition={{ duration:0.5 }}
+                  style={{ height:"100%", background:"linear-gradient(90deg,var(--cyan),var(--pink))" }} />
+              </div>
+            )}
+
+            {/* Grid overlay */}
+            {!recording && (
+              <div style={{ position:"absolute",inset:0,pointerEvents:"none",
+                backgroundImage:"linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)",
+                backgroundSize:"33.3% 33.3%" }} />
+            )}
+          </div>
+
+          {/* Bottom controls */}
+          <div style={{ background:"rgba(0,0,0,0.9)", padding:"20px 24px max(24px,env(safe-area-inset-bottom))" }}>
+            {/* Duration selector */}
+            <div style={{ display:"flex", gap:8, justifyContent:"center", marginBottom:28, overflowX:"auto", paddingBottom:4 }}>
+              {durations.map(d => (
+                <button key={d} className={`duration-pill${duration===d?" active":""}`}
+                  onClick={() => !recording && setDuration(d)}
+                  style={{ flexShrink:0, opacity:recording?0.5:1 }}>
+                  {d}
+                </button>
+              ))}
+            </div>
+
+            {/* Record row */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              {/* Gallery */}
+              <div style={{ width:54, height:54, borderRadius:10, background:"var(--surface)", border:"1px solid var(--border2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <Icon name="Image" size={22} color="var(--text2)" />
+              </div>
+
+              {/* Record button */}
+              <div className="record-btn-outer" onClick={toggleRecord}
+                style={{ borderColor: recording ? "var(--pink)" : "#fff" }}>
+                <div className={`record-btn-inner${recording?" recording":""}`}
+                  style={{ background: recording ? "var(--pink)" : "#fff" }} />
+              </div>
+
+              {/* Effects */}
+              <div style={{ width:54, height:54, borderRadius:10, background:"var(--surface)", border:"1px solid var(--border2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <Icon name="Sparkles" size={22} color="var(--text2)" />
+              </div>
+            </div>
+
+            {/* Mode tabs */}
+            <div style={{ display:"flex", justifyContent:"center", gap:24, marginTop:20 }}>
+              {["Collab","Video","Photo","Text"].map((m,i) => (
+                <button key={m} style={{ background:"none", border:"none", color:i===1?"var(--cyan)":"var(--text3)", fontSize:12, fontWeight:i===1?700:500, borderBottom:i===1?"2px solid var(--cyan)":"2px solid transparent", paddingBottom:4 }}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ROOT APP
+    // ════════════════════════════════════════════════════════════════════════
+    function App() {
+      const [user, setUser]           = useState(null);
+      const [view, setView]           = useState("home");
+      const [showCamera, setShowCamera] = useState(false);
+
+      const handleAuth = (u) => setUser(u);
+      const handleLogout = () => { setUser(null); setView("home"); };
+
+      const NAV = [
+        { id:"home",    icon:"Home",        label:"Home"    },
+        { id:"gaming",  icon:"Gamepad2",    label:"Gaming"  },
+        { id:"create",  icon:"Plus",        label:"",       isCreate:true },
+        { id:"live",    icon:"Radio",       label:"Live"    },
+        { id:"profile", icon:"User",        label:"Me"      },
+      ];
+
+      if (!user) return <AuthScreen onAuth={handleAuth} />;
+
+      return (
+        <div className="app-shell">
+          {/* Main content */}
+          <div style={{ flex:1, overflow:"hidden", position:"relative" }}>
+            <AnimatePresence mode="wait">
+              <motion.div key={view}
+                initial={{ opacity:0, y:8 }}
+                animate={{ opacity:1, y:0 }}
+                exit={{ opacity:0, y:-8 }}
+                transition={{ duration:0.18, ease:"easeOut" }}
+                style={{ height:"100%", overflow:"hidden" }}>
+                {view === "home"    && <HomeView user={user} />}
+                {view === "gaming"  && <GamingView />}
+                {view === "live"    && <LiveView user={user} />}
+                {view === "profile" && <ProfileView user={user} onLogout={handleLogout} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom nav */}
+          <div className="bottom-nav glass-dark" style={{ position:"relative", zIndex:50 }}>
+            {NAV.map(n => {
+              if (n.isCreate) {
+                return (
+                  <button key="create" className="nav-btn-create" onClick={() => setShowCamera(true)}>
+                    <Icon name="Plus" size={26} color="#050508" strokeWidth={2.5} />
+                  </button>
+                );
+              }
+              return (
+                <button key={n.id} className={`nav-btn${view===n.id?" active":""}`}
+                  onClick={() => setView(n.id)}>
+                  <Icon name={n.icon} size={22} color={view===n.id?"var(--cyan)":"var(--text3)"} strokeWidth={view===n.id?2.2:1.8} />
+                  {n.label && <span>{n.label}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Camera overlay */}
+          <AnimatePresence>
+            {showCamera && (
+              <motion.div initial={{ opacity:0, y:"100%" }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:"100%" }}
+                transition={{ type:"spring", damping:28, stiffness:200 }}
+                style={{ position:"fixed", inset:0, zIndex:200 }}>
+                <CameraView onClose={() => setShowCamera(false)} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
 </body>
 </html>
